@@ -18,16 +18,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportRank = $("#reportRank");
   const reportFio = $("#reportFio");
 
+  // Функция обновления предпросмотра
   function updatePreviewText() {
-    reportPosition.textContent = inputPosition.value.trim() || "Инженер ГИТСиЗИ";
-    reportRank.textContent = inputRank.value.trim() || "мл. лейтенант внутренней службы";
-    reportFio.textContent = inputFio.value.trim() || "Иванов И.И.";
+    reportPosition.textContent = inputPosition.value;
+    reportRank.textContent = inputRank.value;
+    reportFio.textContent = inputFio.value;
   }
 
+  // Инициализация полей при загрузке
   if(inputPosition) inputPosition.addEventListener("input", updatePreviewText);
   if(inputRank) inputRank.addEventListener("input", updatePreviewText);
   if(inputFio) inputFio.addEventListener("input", updatePreviewText);
+  
+  // Первичное заполнение
+  updatePreviewText();
 
+  // Установка даты
   const today = new Date();
   const day = String(today.getDate()).padStart(2, "0");
   const year = today.getFullYear();
@@ -136,7 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function reportLine(it) {
-    // Убираем неразрывные пробелы, чтобы Word не ломал нумерацию
     const cName = it.cName;
     const cInv = it.cInv || "—";
     const pName = it.pName;
@@ -204,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // 4. Список картриджей (Настоящий нумерованный список)
+    // 4. Список картриджей
     state.selected.forEach((it, i) => {
       const isLast = i === state.selected.length - 1;
       const punctuation = isLast ? "." : ";";
@@ -222,7 +227,7 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // 5. Подпись
+    // 5. Подпись (берет данные из инпутов)
     const pSign = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: 0, right: 0, firstLine: 0 },
@@ -230,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
     });
 
-    children.push(pSign(inputPosition.value.trim() || "Инженер ГИТСиЗИ"));
+    children.push(pSign(inputPosition.value));
     children.push(pSign("МО МВД России «Городецкий»"));
     
     children.push(new Paragraph({
@@ -238,12 +243,11 @@ document.addEventListener("DOMContentLoaded", () => {
       indent: { left: 0, right: 0, firstLine: 0 },
       spacing: { before: 0, after: 0, line: 240 },
       tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POS }],
-      children: [ new TextRun({ text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), font: FONT, size: SIZE }) ]
+      children: [ new TextRun({ text: inputRank.value + "\t" + inputFio.value, font: FONT, size: SIZE }) ]
     }));
 
     children.push(pSign(dateEl.textContent));
 
-    // Настройка нумерации Word
     const numberingConfig = {
       config: [
         {
@@ -251,14 +255,13 @@ document.addEventListener("DOMContentLoaded", () => {
           levels: [
             {
               level: 0,
-              format: LevelFormat.DECIMAL, // 1, 2, 3
-              text: "%1.", // Точка после цифры
-              alignment: AlignmentType.LEFT, // Цифры по левому краю
+              format: LevelFormat.DECIMAL,
+              text: "%1.",
+              alignment: AlignmentType.LEFT,
               style: {
                 paragraph: {
-                  // Жестко задаем отступ первой строки 1.25 см и отступ слева 0
                   indent: { left: 0, firstLine: INDENT_1_25_CM }, 
-                  alignment: AlignmentType.JUSTIFIED, // По ширине
+                  alignment: AlignmentType.JUSTIFIED,
                   spacing: { before: 0, after: 0, line: 240 },
                 },
                 run: {
@@ -274,11 +277,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const doc = new Document({
       numbering: numberingConfig,
-      styles: {
-        default: {
-          document: { run: { font: FONT, size: SIZE } }
-        }
-      },
+      styles: { default: { document: { run: { font: FONT, size: SIZE } } } },
       sections: [{ 
         properties: { page: { margin: { top: 1134, bottom: 1134, right: 850, left: 1701 } } }, 
         children 
@@ -293,7 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
       a.click();
     } catch (e) {
       console.error(e);
-      alert("Ошибка при создании DOCX. Проверьте консоль.");
+      alert("Ошибка при создании DOCX.");
     }
   }
 
