@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportRank = $("#reportRank");
   const reportFio = $("#reportFio");
 
+  // Синхронизация полей ввода
   function updatePreviewText() {
     reportPosition.textContent = inputPosition.value.trim() || "Инженер ГИТСиЗИ";
     reportRank.textContent = inputRank.value.trim() || "мл. лейтенант внутренней службы";
@@ -28,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if(inputRank) inputRank.addEventListener("input", updatePreviewText);
   if(inputFio) inputFio.addEventListener("input", updatePreviewText);
 
+  // Дата
   const today = new Date();
   const day = String(today.getDate()).padStart(2, "0");
   const year = today.getFullYear();
@@ -35,6 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const month = months[today.getMonth()];
   if(dateEl) dateEl.textContent = `«${day}» ${month} ${year} г.`;
 
+  // --- ЗАГРУЗКА EXCEL ---
   async function loadExcel() {
     try {
       const response = await fetch("card.xlsx");
@@ -54,7 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const pInv  = (r[3] || "").toString().trim();
 
         if (!cName || /^итого$/i.test(cName)) continue;
-
         out.push({ id: i, cName, cInv, pName, pInv });
       }
       state.db = out;
@@ -65,12 +67,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // --- ПОИСК ---
   const norm = (s) => (s || "").toString().toLowerCase();
   const escapeHtml = (s) => (s || "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
   function filteredItems() {
     const q = norm(state.query).trim();
     let items = state.db;
+    
+    // Скрываем уже добавленные
     const selectedIds = new Set(state.selected.map(s => s.id));
     items = items.filter(it => !selectedIds.has(it.id));
 
@@ -135,6 +140,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // --- ФОРМИРОВАНИЕ ТЕКСТА ---
+  // Заменяем обычные пробелы на неразрывные, чтобы не было "дыр"
   function safeStr(str) {
     return (str || "").toString()
       .replace(/инв\.\s*№/g, "инв.\u00A0№")
@@ -149,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}`;
   }
 
+  // --- ОТРИСОВКА ПРЕДПРОСМОТРА (Исправлено) ---
   function renderReport() {
     if(!reportListEl) return;
     reportListEl.innerHTML = "";
@@ -158,19 +166,20 @@ document.addEventListener("DOMContentLoaded", () => {
       emptyNote.style.display = "none";
       state.selected.forEach((it, idx) => {
         const div = document.createElement("div");
-        div.style.textAlign = "justify";
-        div.style.marginBottom = "0";
-        
         const isLast = idx === state.selected.length - 1;
         const punctuation = isLast ? "." : ";";
         
-        // Формируем абзац точно как в Word (номер + отступ)
-        div.innerHTML = `<span style="display:inline-block; width:1.25cm;">${idx + 1}.</span>${reportLine(it)}${punctuation}`;
+        // Жестко задаем отступ для первой строки
+        div.style.textIndent = "1.25cm";
+        div.style.textAlign = "justify";
+        div.style.marginBottom = "0";
+        div.textContent = `${idx + 1}. ${reportLine(it)}${punctuation}`;
         reportListEl.appendChild(div);
       });
     }
   }
 
+  // --- СКАЧИВАНИЕ DOCX (Исправлено) ---
   async function exportDocx() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     
@@ -185,6 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const children = [];
 
+    // Шапка
     const pHeader = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: INDENT_11_25_CM, firstLine: 0 },
@@ -198,6 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
+    // Заголовок
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 0, line: 240 },
@@ -206,6 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
+    // Вступление
     children.push(new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM },
@@ -213,6 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
+    // СПИСОК КАРТРИДЖЕЙ
     state.selected.forEach((it, i) => {
       const isLast = i === state.selected.length - 1;
       const punctuation = isLast ? "." : ";";
@@ -222,19 +235,23 @@ document.addEventListener("DOMContentLoaded", () => {
       const pName = safeStr(it.pName);
       const pInv = safeStr(it.pInv || "—");
       
-      const lineText = `${i + 1}. ${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}${punctuation}`;
+      const prefix = `${i + 1}. `;
+      const textBody = `${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}${punctuation}`;
 
+      // Используем ТАБУЛЯЦИЮ для номера, чтобы текст был ровным
       children.push(new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
-        indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM },
+        indent: { left: INDENT_1_25_CM, right: 0, firstLine: -INDENT_1_25_CM }, // Выступ
+        tabStops: [{ type: TabStopType.LEFT, position: INDENT_1_25_CM }],
         spacing: { before: 0, after: 0, line: 240 },
-        children: [ new TextRun({ text: lineText, font: FONT, size: SIZE }) ]
+        children: [ new TextRun({ text: prefix + "\t" + textBody, font: FONT, size: SIZE }) ]
       }));
     });
 
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
+    // Подпись
     const pSign = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: 0, right: 0, firstLine: 0 },
@@ -282,6 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // --- СКАЧИВАНИЕ PDF ---
   function exportPdf() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     
@@ -295,13 +313,14 @@ document.addEventListener("DOMContentLoaded", () => {
         scale: 3, 
         useCORS: true, 
         backgroundColor: "#ffffff",
-        letterRendering: true, // Помогает лучше рендерить буквы
-        wordSpacing: 0         // Отключает растягивание пробелов
+        letterRendering: true,
+        wordSpacing: 0 
       },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
     }).from(element).save();
   }
 
+  // --- СОБЫТИЯ ---
   if(searchInput) searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
   const clearBtn = $("#clearBtn");
   if(clearBtn) clearBtn.addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
