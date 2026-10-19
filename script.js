@@ -135,18 +135,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function safeStr(str) {
-    return (str || "").toString()
-      .replace(/инв\.\s*№/g, "инв.\u00A0№")
-      .replace(/\s+к\s+/g, "\u00A0к\u00A0");
-  }
-
   function reportLine(it) {
-    const cName = safeStr(it.cName);
-    const cInv = safeStr(it.cInv || "—");
-    const pName = safeStr(it.pName);
-    const pInv = safeStr(it.pInv || "—");
-    return `${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}`;
+    const cName = it.cName;
+    const cInv = it.cInv || "—";
+    const pName = it.pName;
+    const pInv = it.pInv || "—";
+    return `${cName} инв. № ${cInv} к ${pName} инв. № ${pInv}`;
   }
 
   function renderReport() {
@@ -157,14 +151,11 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       emptyNote.style.display = "none";
       state.selected.forEach((it, idx) => {
-        const div = document.createElement("div");
-        div.className = "report-item";
+        const li = document.createElement("li");
         const isLast = idx === state.selected.length - 1;
         const punctuation = isLast ? "." : ";";
-        
-        // Вручную ставим цифру и точку, как в Word
-        div.textContent = `${idx + 1}. ${reportLine(it)}${punctuation}`;
-        reportListEl.appendChild(div);
+        li.textContent = reportLine(it) + punctuation;
+        reportListEl.appendChild(li);
       });
     }
   }
@@ -177,8 +168,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const FONT = "Times New Roman";
     const SIZE = 28;
 
-    const INDENT_11_25_CM = 6378; // 11.25 см
-    const INDENT_1_25_CM = 709;   // 1.25 см
+    const INDENT_11_25_CM = 6378;
+    const INDENT_1_25_CM = 709;
     const RIGHT_TAB_POS = 9070;
 
     const children = [];
@@ -298,17 +289,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function exportPdf() {
-    if (!state.selected.length) return alert("Сначала добавьте картриджи.");
-    window.html2pdf().set({
-      margin: 0,
-      filename: `Рапорт_заправка_${Date.now()}.pdf`,
-      image: { type: "jpeg", quality: 1.0 },
-      html2canvas: { scale: 3, useCORS: true, backgroundColor: "#ffffff", wordSpacing: 0 },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-    }).from(document.getElementById("report")).save();
-  }
-
   if(searchInput) searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
   const clearBtn = $("#clearBtn");
   if(clearBtn) clearBtn.addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
@@ -316,8 +296,5 @@ document.addEventListener("DOMContentLoaded", () => {
   const docxBtn = $("#docxBtn");
   if(docxBtn) docxBtn.addEventListener("click", exportDocx);
   
-  const pdfBtn = $("#pdfBtn");
-  if(pdfBtn) pdfBtn.addEventListener("click", exportPdf);
-
   loadExcel();
 });
