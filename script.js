@@ -135,12 +135,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Защита от разрыва пробелов в ключевых местах
+  function safeStr(str) {
+    return (str || "").toString()
+      .replace(/инв\.\s*№/g, "инв.\u00A0№")
+      .replace(/\s+к\s+/g, "\u00A0к\u00A0");
+  }
+
   function reportLine(it) {
-    const cName = it.cName;
-    const cInv = it.cInv || "—";
-    const pName = it.pName;
-    const pInv = it.pInv || "—";
-    return `${cName} инв. № ${cInv} к ${pName} инв. № ${pInv}`;
+    const cName = safeStr(it.cName);
+    const cInv = safeStr(it.cInv || "—");
+    const pName = safeStr(it.pName);
+    const pInv = safeStr(it.pInv || "—");
+    return `${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}`;
   }
 
   function renderReport() {
@@ -154,7 +161,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const li = document.createElement("li");
         const isLast = idx === state.selected.length - 1;
         const punctuation = isLast ? "." : ";";
-        li.textContent = reportLine(it) + punctuation;
+        // Принудительно добавляем номер и точку в начало
+        li.textContent = `${idx + 1}. ${reportLine(it)}${punctuation}`;
         reportListEl.appendChild(li);
       });
     }
