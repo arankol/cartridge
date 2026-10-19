@@ -141,8 +141,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- ФОРМИРОВАНИЕ РАПОРТА ---
+  // Заменяем обычные пробелы на неразрывные в ключевых связках, чтобы избежать "дыр" при выравнивании
+  function safeStr(str) {
+    return (str || "").toString()
+      .replace(/инв\.\s*№/g, "инв.\u00A0№")
+      .replace(/\s+к\s+/g, "\u00A0к\u00A0");
+  }
+
   function reportLine(it) {
-    return `${it.cName} инв. № ${it.cInv || "—"} к ${it.pName} инв. № ${it.pInv || "—"}`;
+    const cName = safeStr(it.cName);
+    const cInv = safeStr(it.cInv || "—");
+    const pName = safeStr(it.pName);
+    const pInv = safeStr(it.pInv || "—");
+    return `${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}`;
   }
 
   function renderReport() {
@@ -154,7 +165,6 @@ document.addEventListener("DOMContentLoaded", () => {
       emptyNote.style.display = "none";
       state.selected.forEach((it, idx) => {
         const li = document.createElement("li");
-        // Если это последний элемент - ставим точку, иначе точку с запятой
         const isLast = idx === state.selected.length - 1;
         const punctuation = isLast ? "." : ";";
         li.textContent = reportLine(it) + punctuation;
@@ -168,7 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     
     const docx = window.docx;
-    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType, TabStopPosition } = docx;
+    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType } = docx;
     const FONT = "Times New Roman";
     const SIZE = 28; // 14 pt
 
@@ -179,7 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const children = [];
 
-    // 1. Шапка (Выравнивание по левому краю, отступ слева 11.25 см)
+    // 1. Шапка
     const pHeader = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: INDENT_11_25_CM, firstLine: 0 },
@@ -191,7 +201,6 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(pHeader("полковнику полиции"));
     children.push(pHeader("Трошину Н.С."));
 
-    // Пустая строка
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
     // Заголовок "Рапорт"
@@ -211,15 +220,23 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // 3. Список картриджей
+    // 3. Список картриджей (Используем неразрывные пробелы \u00A0)
     state.selected.forEach((it, i) => {
       const isLast = i === state.selected.length - 1;
       const punctuation = isLast ? "." : ";";
+      
+      const cName = safeStr(it.cName);
+      const cInv = safeStr(it.cInv || "—");
+      const pName = safeStr(it.pName);
+      const pInv = safeStr(it.pInv || "—");
+      
+      const lineText = `${i + 1}. ${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}${punctuation}`;
+
       children.push(new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
         indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM },
         spacing: { before: 0, after: 0, line: 240 },
-        children: [ new TextRun({ text: `${i + 1}. ${reportLine(it)}${punctuation}`, font: FONT, size: SIZE }) ]
+        children: [ new TextRun({ text: lineText, font: FONT, size: SIZE }) ]
       }));
     });
 
@@ -238,12 +255,11 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(pSign(inputPosition.value.trim() || "Инженер ГИТСиЗИ"));
     children.push(pSign("МО МВД России «Городецкий»"));
     
-    // Строка со званием и ФИО
+    // Строка со званием и ФИО (Табуляция)
     children.push(new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: 0, right: 0, firstLine: 0 },
       spacing: { before: 0, after: 0, line: 240 },
-      // Добавляем настройку табуляции (прижимает ФИО вправо)
       tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POS }],
       children: [ 
         new TextRun({ 
