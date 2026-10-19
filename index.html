@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Рапорт на заправку картриджей</title>
 
+  <!-- Библиотеки для работы с Excel, DOCX и PDF -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
@@ -20,6 +21,7 @@
     .panel h2 { font-size: 15px; margin: 20px 0 8px; color: #374151; }
     .hint { font-size: 12px; color: #6b7280; margin: 0 0 12px; }
     
+    /* Поля ввода */
     .input-group { margin-bottom: 10px; }
     .input-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #4b5563; }
     .input-group input { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px; outline: none; }
@@ -50,20 +52,20 @@
     .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; }
     .report { background: #fff; width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 25mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
     
-    /* Форматирование шапки */
+    /* Шапка */
     .report-header { text-align: left; padding-left: 11.25cm; margin-bottom: 24px; }
     .report-header p { margin: 0; }
     
     .report-title { text-align: center; font-size: 16pt; font-weight: bold; margin: 16px 0 24px; letter-spacing: 2px; text-transform: uppercase; }
     
-    /* Текст вступления */
+    /* Текст вступления (по ширине) */
     .report-body { text-align: justify; text-indent: 1.25cm; margin: 0 0 14px; }
     
-    /* Список картриджей */
-    .report-list { margin: 0; padding-left: 1.25cm; text-align: left; }
-    .report-list li { margin-bottom: 0; text-indent: -1.25cm; padding-left: 1.25cm; } /* Ровный край для цифры */
+    /* Список картриджей (по ширине, отступ первой строки) */
+    .report-list { margin: 0; padding-left: 0; text-align: justify; list-style-position: inside; }
+    .report-list li { margin-bottom: 0; text-indent: 1.25cm; display: block; }
     
-    .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; }
+    .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; text-align: justify; }
     
     /* Подпись */
     .report-footer { margin-top: 40px; text-align: left; padding: 0; }
