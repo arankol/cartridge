@@ -48,8 +48,8 @@
     .btn.secondary:hover { background: #f3f4f6; }
 
     /* Правая панель (Предпросмотр A4) */
-    .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; }
-    .report { background: #fff; width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 25mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
+    .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; min-width: 0; }
+    .report { background: #fff; width: 210mm; min-width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 30mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
     
     /* Форматирование шапки - выравнивание по левому краю, отступ слева 11.25 см */
     .report-header { text-align: left; padding-left: 11.25cm; margin-bottom: 24px; }
@@ -72,20 +72,20 @@
     .report-footer .fio-row { 
       display: flex; 
       justify-content: space-between; /* Разносит звание влево, ФИО вправо */
-      margin-top: 24px; 
+      margin-top: 0; 
       padding: 0;
       text-align: left;
     }
     .report-footer .fio-row .fio { text-align: right; }
     
-    .report-footer #date { margin-top: 16px; }
+    .report-footer #date { margin-top: 0; }
 
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
       .panel { position: static; max-height: none; border-right: none; border-bottom: 1px solid #e5e7eb; }
       .preview-wrap { padding: 10px; }
-      .report { width: 100%; min-height: auto; padding: 20px; font-size: 12pt; }
-      .report-header { padding-left: 0; text-align: right; }
+      .report { width: 210mm; min-width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 30mm; font-size: 14pt; }
+      .report-header { padding-left: 11.25cm; text-align: left; }
     }
   </style>
 </head>
