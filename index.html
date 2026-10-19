@@ -51,17 +51,26 @@
     /* Правая панель (Предпросмотр) */
     .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; }
     .report { background: #fff; width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 25mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
-    .report-header { text-align: right; margin-bottom: 24px; }
-    .report-header p { margin: 0; text-align: right; }
+    
+    /* Форматирование шапки - выравнивание по левому краю, отступ слева 11.25 см */
+    .report-header { text-align: left; padding-left: 11.25cm; margin-bottom: 24px; }
+    .report-header p { margin: 0; }
+    
     .report-title { text-align: center; font-size: 16pt; font-weight: bold; margin: 16px 0 24px; letter-spacing: 2px; text-transform: uppercase; }
+    
+    /* Текст по ширине, первая строка 1.25 см */
     .report-body { text-align: justify; text-indent: 1.25cm; margin: 0 0 14px; }
-    .report-list { margin: 0; padding-left: 1.5cm; }
-    .report-list li { margin-bottom: 10px; text-align: justify; }
+    .report-list { margin: 0; padding-left: 1.25cm; text-align: justify; }
+    .report-list li { margin-bottom: 0; text-indent: 0; }
+    
     .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; }
     
-    .report-footer { margin-top: 40px; }
-    .report-footer p { margin: 0; text-align: left; padding-left: 11.25cm; } /* Сдвиг подписи вправо */
-    .report-footer #reportRank { margin-top: 24px; }
+    /* Подпись - выравнивание по левому краю, без отступов */
+    .report-footer { margin-top: 40px; text-align: left; padding: 0; }
+    .report-footer p { margin: 0; text-indent: 0; padding-left: 0; }
+    .report-footer .fio-row { display: flex; justify-content: flex-start; margin-top: 24px; }
+    .report-footer .fio-row .rank { width: 11.25cm; }
+    .report-footer .fio-row .fio { padding-left: 0; }
     .report-footer #date { margin-top: 16px; }
 
     @media (max-width: 900px) {
@@ -69,7 +78,8 @@
       .panel { position: static; max-height: none; border-right: none; border-bottom: 1px solid #e5e7eb; }
       .preview-wrap { padding: 10px; }
       .report { width: 100%; min-height: auto; padding: 20px; font-size: 12pt; }
-      .report-footer p { padding-left: 0; }
+      .report-header { padding-left: 0; }
+      .report-footer .fio-row .rank { width: auto; margin-right: 10px; }
     }
   </style>
 </head>
@@ -112,6 +122,7 @@
     <!-- ПРАВАЯ ПАНЕЛЬ (ПРЕДПРОСМОТР) -->
     <main class="preview-wrap">
       <div id="report" class="report">
+        <!-- Шапка -->
         <div class="report-header">
           <p>Начальнику МО МВД</p>
           <p>России «Городецкий»</p>
@@ -128,10 +139,14 @@
         <ol id="reportList" class="report-list"></ol>
         <p id="emptyNote" class="empty-note">Добавьте картриджи из списка слева — они появятся здесь.</p>
 
+        <!-- Подпись -->
         <div class="report-footer">
           <p id="reportPosition">Инженер ГИТСиЗИ</p>
           <p>МО МВД России «Городецкий»</p>
-          <p id="reportRankAndFio">мл. лейтенант внутренней службы Иванов И.И.</p>
+          <div class="fio-row">
+            <span id="reportRank" class="rank">мл. лейтенант внутренней службы</span>
+            <span id="reportFio" class="fio">Иванов И.И.</span>
+          </div>
           <p id="date"></p>
         </div>
       </div>
