@@ -55,13 +55,13 @@
     
     .report-body { text-align: justify; text-indent: 1.25cm; margin: 0 0 14px; }
     
-    /* СПИСОК: Жесткая настройка отступа и выравнивания */
-    .report-list { margin: 0; padding: 0; list-style: none; }
-    .report-list li { 
+    /* Список картриджей (точная имитация абзаца Word) */
+    .report-list { margin: 0; padding: 0; }
+    .report-list .report-item { 
       text-align: justify; 
-      padding-left: 1.25cm; 
-      text-indent: -1.25cm; /* Вторая строка начинается от левого края (как вы просили) */
-      margin-bottom: 0; 
+      text-indent: 1.25cm; /* Отступ первой строки как в Word */
+      margin: 0;
+      padding: 0;
     }
     
     .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; }
@@ -131,7 +131,7 @@
           Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:
         </p>
 
-        <ul id="reportList" class="report-list"></ul>
+        <div id="reportList" class="report-list"></div>
         <p id="emptyNote" class="empty-note">Добавьте картриджи из списка слева — они появятся здесь.</p>
 
         <div class="report-footer">
