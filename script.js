@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportRank = $("#reportRank");
   const reportFio = $("#reportFio");
 
-  // Синхронизация полей ввода
+  // Синхронизация полей ввода с предпросмотром
   function updatePreviewText() {
     reportPosition.textContent = inputPosition.value.trim() || "Инженер ГИТСиЗИ";
     reportRank.textContent = inputRank.value.trim() || "мл. лейтенант внутренней службы";
@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if(inputRank) inputRank.addEventListener("input", updatePreviewText);
   if(inputFio) inputFio.addEventListener("input", updatePreviewText);
 
-  // Дата
+  // Установка текущей даты
   const today = new Date();
   const day = String(today.getDate()).padStart(2, "0");
   const year = today.getFullYear();
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const month = months[today.getMonth()];
   if(dateEl) dateEl.textContent = `«${day}» ${month} ${year} г.`;
 
-  // --- ЗАГРУЗКА EXCEL ---
+  // --- ЗАГРУЗКА И ЧТЕНИЕ EXCEL ---
   async function loadExcel() {
     try {
       const response = await fetch("card.xlsx");
@@ -57,6 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const pInv  = (r[3] || "").toString().trim();
 
         if (!cName || /^итого$/i.test(cName)) continue;
+
         out.push({ id: i, cName, cInv, pName, pInv });
       }
       state.db = out;
@@ -67,13 +68,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- ПОИСК ---
+  // --- ОТРИСОВКА И ПОИСК ---
   const norm = (s) => (s || "").toString().toLowerCase();
   const escapeHtml = (s) => (s || "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
   function filteredItems() {
     const q = norm(state.query).trim();
     let items = state.db;
+    
     const selectedIds = new Set(state.selected.map(s => s.id));
     items = items.filter(it => !selectedIds.has(it.id));
 
@@ -138,12 +140,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // --- ФОРМИРОВАНИЕ ТЕКСТА ---
+  // --- ФОРМИРОВАНИЕ РАПОРТА ---
   function reportLine(it) {
     return `${it.cName} инв. № ${it.cInv || "—"} к ${it.pName} инв. № ${it.pInv || "—"}`;
   }
 
-  // --- ОТРИСОВКА ПРЕДПРОСМОТРА ---
   function renderReport() {
     if(!reportListEl) return;
     reportListEl.innerHTML = "";
@@ -152,90 +153,106 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       emptyNote.style.display = "none";
       state.selected.forEach((it, idx) => {
-        const div = document.createElement("div");
+        const li = document.createElement("li");
+        // Если это последний элемент - ставим точку, иначе точку с запятой
         const isLast = idx === state.selected.length - 1;
         const punctuation = isLast ? "." : ";";
-        
-        div.style.textAlign = "left"; 
-        div.style.paddingLeft = "1.25cm";
-        div.style.textIndent = "-1.25cm"; // Делает ровный край для номера
-        div.style.marginBottom = "0";
-        div.textContent = `${idx + 1}. ${reportLine(it)}${punctuation}`;
-        reportListEl.appendChild(div);
+        li.textContent = reportLine(it) + punctuation;
+        reportListEl.appendChild(li);
       });
     }
   }
 
-  // --- СКАЧИВАНИЕ DOCX (ИСПРАВЛЕНО) ---
+  // --- СКАЧИВАНИЕ DOCX ---
   async function exportDocx() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     
     const docx = window.docx;
-    const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
+    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType, TabStopPosition } = docx;
     const FONT = "Times New Roman";
     const SIZE = 28; // 14 pt
 
-    // 1 см = 567 твипов (twip)
-    const CM_1_25 = 709; 
-    const CM_11_25 = 6378;
+    // Значения отступов в Twip (1 см = 567 twip)
+    const INDENT_11_25_CM = 6378; // 11.25 см
+    const INDENT_1_25_CM = 709;   // 1.25 см
+    const RIGHT_TAB_POS = 9070;   // Позиция табуляции для прижатия ФИО к правому краю (в Twip)
 
     const children = [];
 
-    // 1. Шапка (Отступ слева 11.25 см)
+    // 1. Шапка (Выравнивание по левому краю, отступ слева 11.25 см)
     const pHeader = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
-      indent: { left: CM_11_25 },
-      spacing: { line: 240 },
+      indent: { left: INDENT_11_25_CM, firstLine: 0 },
+      spacing: { before: 0, after: 0, line: 240 },
       children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
     });
     children.push(pHeader("Начальнику МО МВД"));
     children.push(pHeader("России «Городецкий»"));
     children.push(pHeader("полковнику полиции"));
     children.push(pHeader("Трошину Н.С."));
-    children.push(new Paragraph({ spacing: { line: 240 } }));
 
-    // 2. Заголовок
+    // Пустая строка
+    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
+
+    // Заголовок "Рапорт"
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { line: 240, after: 240 },
+      spacing: { before: 0, after: 0, line: 240 },
       children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: true }) ]
     }));
+    
+    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // 3. Вступление
+    // 2. Вступление
     children.push(new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
-      indent: { firstLine: CM_1_25 },
-      spacing: { line: 240, after: 120 },
+      indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM },
+      spacing: { before: 0, after: 0, line: 240 },
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // 4. Список картриджей (Выравнивание по левому краю и отступ для номера)
+    // 3. Список картриджей
     state.selected.forEach((it, i) => {
       const isLast = i === state.selected.length - 1;
       const punctuation = isLast ? "." : ";";
-      
       children.push(new Paragraph({
-        alignment: AlignmentType.LEFT, // Убирает большие пробелы
-        indent: { left: CM_1_25 },     // Отступ слева для всего текста
-        spacing: { line: 240 },
+        alignment: AlignmentType.JUSTIFIED,
+        indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM },
+        spacing: { before: 0, after: 0, line: 240 },
         children: [ new TextRun({ text: `${i + 1}. ${reportLine(it)}${punctuation}`, font: FONT, size: SIZE }) ]
       }));
     });
 
-    children.push(new Paragraph({ spacing: { line: 240 } }));
-    children.push(new Paragraph({ spacing: { line: 240 } }));
+    // Пустые строки перед подписью
+    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
+    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // 5. Подпись
+    // 4. Подпись
     const pSign = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
-      spacing: { line: 240 },
+      indent: { left: 0, right: 0, firstLine: 0 },
+      spacing: { before: 0, after: 0, line: 240 },
       children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
     });
 
     children.push(pSign(inputPosition.value.trim() || "Инженер ГИТСиЗИ"));
     children.push(pSign("МО МВД России «Городецкий»"));
-    // Звание и ФИО разносим с помощью табов
-    children.push(pSign(`${inputRank.value.trim() || "мл. лейтенант внутренней службы"} \t\t\t ${inputFio.value.trim() || "Иванов И.И."}`));
+    
+    // Строка со званием и ФИО
+    children.push(new Paragraph({
+      alignment: AlignmentType.LEFT,
+      indent: { left: 0, right: 0, firstLine: 0 },
+      spacing: { before: 0, after: 0, line: 240 },
+      // Добавляем настройку табуляции (прижимает ФИО вправо)
+      tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POS }],
+      children: [ 
+        new TextRun({ 
+          text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), 
+          font: FONT, size: SIZE 
+        }) 
+      ]
+    }));
+
     children.push(pSign(dateEl.textContent));
 
     const doc = new Document({
@@ -256,28 +273,20 @@ document.addEventListener("DOMContentLoaded", () => {
       a.click();
     } catch (e) {
       console.error(e);
-      alert("Ошибка при создании DOCX. Проверьте консоль (F12).");
+      alert("Ошибка при создании файла DOCX.");
     }
   }
 
   // --- СКАЧИВАНИЕ PDF ---
   function exportPdf() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
-    
-    const element = document.getElementById("report");
-    
     window.html2pdf().set({
       margin: 0,
       filename: `Рапорт_заправка_${Date.now()}.pdf`,
-      image: { type: "jpeg", quality: 1.0 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, 
-        backgroundColor: "#ffffff",
-        wordSpacing: 0 
-      },
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-    }).from(element).save();
+    }).from(document.getElementById("report")).save();
   }
 
   // --- СОБЫТИЯ ---
