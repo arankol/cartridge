@@ -48,14 +48,22 @@
     .btn.secondary:hover { background: #f3f4f6; }
 
     /* Правая панель (Предпросмотр A4) */
-    .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; min-width: 0; }
-    .report { background: #fff; width: 210mm; min-width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 30mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
+    .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; }
+    .report { background: #fff; width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 25mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
     
     /* Форматирование шапки - выравнивание по левому краю, отступ слева 11.25 см */
     .report-header { text-align: left; padding-left: 11.25cm; margin-bottom: 24px; }
     .report-header p { margin: 0; }
     
-    .report-title { text-align: center; font-family: "Times New Roman", Times, serif; font-size: 14pt; font-weight: normal; margin: 16px 0 24px; letter-spacing: normal; text-transform: none; }
+    /* Заголовок Рапорт (не жирный, 14 шрифт) */
+    .report-title { 
+      text-align: center; 
+      font-size: 14pt;      /* Размер 14 */
+      font-weight: normal;  /* Не жирный */
+      margin: 16px 0 24px; 
+      letter-spacing: 2px; 
+      text-transform: uppercase; 
+    }
     
     /* Текст по ширине, первая строка 1.25 см */
     .report-body { text-align: justify; text-indent: 1.25cm; margin: 0 0 14px; }
@@ -72,20 +80,20 @@
     .report-footer .fio-row { 
       display: flex; 
       justify-content: space-between; /* Разносит звание влево, ФИО вправо */
-      margin-top: 0; 
+      margin-top: 24px; 
       padding: 0;
       text-align: left;
     }
     .report-footer .fio-row .fio { text-align: right; }
     
-    .report-footer #date { margin-top: 0; }
+    .report-footer #date { margin-top: 16px; }
 
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
       .panel { position: static; max-height: none; border-right: none; border-bottom: 1px solid #e5e7eb; }
       .preview-wrap { padding: 10px; }
-      .report { width: 210mm; min-width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 30mm; font-size: 14pt; }
-      .report-header { padding-left: 11.25cm; text-align: left; }
+      .report { width: 100%; min-height: auto; padding: 20px; font-size: 12pt; }
+      .report-header { padding-left: 0; text-align: right; }
     }
   </style>
 </head>
