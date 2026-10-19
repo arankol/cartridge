@@ -160,12 +160,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     
     const docx = window.docx;
-    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType, LevelFormat } = docx;
+    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType } = docx;
     const FONT = "Times New Roman";
     const SIZE = 28;
 
-    const INDENT_11_25_CM = 6378;
+    // 1.25 см = 709 твипов
     const INDENT_1_25_CM = 709;
+    const INDENT_11_25_CM = 6378;
     const RIGHT_TAB_POS = 9070;
 
     const children = [];
@@ -199,17 +200,17 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // 4. Список картриджей (истинная нумерация Word)
+    // 4. Список картриджей
     state.selected.forEach((it, i) => {
       const isLast = i === state.selected.length - 1;
       const punctuation = isLast ? "." : ";";
+      
+      // Имитируем список вручную
       children.push(new Paragraph({
-        text: reportLine(it) + punctuation,
-        numbering: {
-          reference: "my-numbering",
-          level: 0,
-          instance: 0,
-        }
+        alignment: AlignmentType.JUSTIFIED, // Выравнивание по ширине
+        indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM }, // Отступ первой строки 1.25 см
+        spacing: { before: 0, after: 0, line: 240 },
+        children: [ new TextRun({ text: `${i + 1}. ${reportLine(it)}${punctuation}`, font: FONT, size: SIZE }) ]
       }));
     });
 
@@ -237,42 +238,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     children.push(pSign(dateEl.textContent));
 
-    // Настройка абстрактного нумерованного списка
-    const numberingConfig = {
-      config: [
-        {
-          reference: "my-numbering",
-          levels: [
-            {
-              level: 0,
-              format: LevelFormat.DECIMAL, // Арабские цифры 1, 2, 3
-              text: "%1.",                 // С точкой
-              alignment: AlignmentType.LEFT, // Выравнивание цифр влево
-              style: {
-                paragraph: {
-                  // Принудительно задаем отступы и выравнивание
-                  indent: { left: INDENT_1_25_CM, hanging: INDENT_1_25_CM }, // 1.25 см, текст выровнен ровно
-                  alignment: AlignmentType.JUSTIFIED, // По ширине
-                  spacing: { before: 0, after: 0, line: 240 }, // Без интервалов
-                },
-                run: {
-                  font: FONT,
-                  size: SIZE
-                }
-              }
-            }
-          ]
-        }
-      ]
-    };
-
     const doc = new Document({
-      numbering: numberingConfig,
-      styles: {
-        default: {
-          document: { run: { font: FONT, size: SIZE } }
-        }
-      },
+      styles: { default: { document: { run: { font: FONT, size: SIZE } } } },
       sections: [{ 
         properties: { page: { margin: { top: 1134, bottom: 1134, right: 850, left: 1701 } } }, 
         children 
@@ -287,7 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
       a.click();
     } catch (e) {
       console.error(e);
-      alert("Ошибка при создании DOCX.");
+      alert("Ошибка при создании файла DOCX.");
     }
   }
 
