@@ -140,7 +140,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- ФОРМИРОВАНИЕ ТЕКСТА ---
   function reportLine(it) {
-    // Используем обычные пробелы, так как выравнивать по ширине мы больше не будем
     return `${it.cName} инв. № ${it.cInv || "—"} к ${it.pName} инв. № ${it.pInv || "—"}`;
   }
 
@@ -157,10 +156,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const isLast = idx === state.selected.length - 1;
         const punctuation = isLast ? "." : ";";
         
-        // Выравниваем по левому краю и делаем висячий отступ (номер слева, текст ровно)
         div.style.textAlign = "left"; 
         div.style.paddingLeft = "1.25cm";
-        div.style.textIndent = "-1.25cm";
+        div.style.textIndent = "-1.25cm"; // Делает ровный край для номера
         div.style.marginBottom = "0";
         div.textContent = `${idx + 1}. ${reportLine(it)}${punctuation}`;
         reportListEl.appendChild(div);
@@ -168,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- СКАЧИВАНИЕ DOCX ---
+  // --- СКАЧИВАНИЕ DOCX (ИСПРАВЛЕНО) ---
   async function exportDocx() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     
@@ -187,14 +185,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const pHeader = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: CM_11_25 },
-      spacing: { line: 240, before: 0, after: 0 },
+      spacing: { line: 240 },
       children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
     });
     children.push(pHeader("Начальнику МО МВД"));
     children.push(pHeader("России «Городецкий»"));
     children.push(pHeader("полковнику полиции"));
     children.push(pHeader("Трошину Н.С."));
-    children.push(new Paragraph({ spacing: { line: 240 } })); // Пустая строка
+    children.push(new Paragraph({ spacing: { line: 240 } }));
 
     // 2. Заголовок
     children.push(new Paragraph({
@@ -203,7 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: true }) ]
     }));
 
-    // 3. Вступление (По ширине, отступ первой строки 1.25 см)
+    // 3. Вступление
     children.push(new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       indent: { firstLine: CM_1_25 },
@@ -211,15 +209,15 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // 4. Список картриджей (По ЛЕВОМУ краю с висячим отступом, чтобы не было дыр)
+    // 4. Список картриджей (Выравнивание по левому краю и отступ для номера)
     state.selected.forEach((it, i) => {
       const isLast = i === state.selected.length - 1;
       const punctuation = isLast ? "." : ";";
       
       children.push(new Paragraph({
-        alignment: AlignmentType.LEFT, // Выравнивание по левому краю
-        indent: { left: CM_1_25, hanging: CM_1_25 }, // Висячий отступ
-        spacing: { line: 240, after: 0 },
+        alignment: AlignmentType.LEFT, // Убирает большие пробелы
+        indent: { left: CM_1_25 },     // Отступ слева для всего текста
+        spacing: { line: 240 },
         children: [ new TextRun({ text: `${i + 1}. ${reportLine(it)}${punctuation}`, font: FONT, size: SIZE }) ]
       }));
     });
@@ -230,16 +228,16 @@ document.addEventListener("DOMContentLoaded", () => {
     // 5. Подпись
     const pSign = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
-      spacing: { line: 240, after: 0 },
+      spacing: { line: 240 },
       children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
     });
 
     children.push(pSign(inputPosition.value.trim() || "Инженер ГИТСиЗИ"));
     children.push(pSign("МО МВД России «Городецкий»"));
-    children.push(pSign(`${inputRank.value.trim() || "мл. лейтенант внутренней службы"} \t\t\t\t ${inputFio.value.trim() || "Иванов И.И."}`)); // Отступ через табы
+    // Звание и ФИО разносим с помощью табов
+    children.push(pSign(`${inputRank.value.trim() || "мл. лейтенант внутренней службы"} \t\t\t ${inputFio.value.trim() || "Иванов И.И."}`));
     children.push(pSign(dateEl.textContent));
 
-    // Настройка документа
     const doc = new Document({
       styles: { default: { document: { run: { font: FONT, size: SIZE } } } },
       sections: [{ 
@@ -258,7 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
       a.click();
     } catch (e) {
       console.error(e);
-      alert("Ошибка при создании файла DOCX.");
+      alert("Ошибка при создании DOCX. Проверьте консоль (F12).");
     }
   }
 
@@ -273,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
       filename: `Рапорт_заправка_${Date.now()}.pdf`,
       image: { type: "jpeg", quality: 1.0 },
       html2canvas: { 
-        scale: 3, 
+        scale: 2, 
         useCORS: true, 
         backgroundColor: "#ffffff",
         wordSpacing: 0 
