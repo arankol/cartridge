@@ -69,16 +69,16 @@
     .report-footer { margin-top: 40px; text-align: left; padding: 0; }
     .report-footer p { margin: 0; text-indent: 0; padding-left: 0; }
     
-    .report-footer .fio-row { display: flex; justify-content: space-between; margin-top: 24px; padding: 0; text-align: left; }
+    .report-footer .fio-row { display: flex; justify-content: space-between; margin-top: 0; padding: 0; text-align: left; }
     .report-footer .fio-row .fio { text-align: right; }
-    .report-footer #date { margin-top: 16px; }
+    .report-footer #date { margin-top: 0; }
 
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
       .panel { position: static; max-height: none; border-right: none; border-bottom: 1px solid #e5e7eb; }
       .preview-wrap { padding: 10px; }
-      .report { width: 100%; min-height: auto; padding: 20px; font-size: 12pt; }
-      .report-header { padding-left: 0; text-align: right; }
+      .report { width: 210mm; min-width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 25mm; font-size: 14pt; }
+      .report-header { padding-left: 11.25cm; text-align: left; }
     }
   </style>
 </head>
