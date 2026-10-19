@@ -7,18 +7,19 @@
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 
   <style>
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f3f4f6; color: #111; }
     .layout { display: grid; grid-template-columns: 400px 1fr; min-height: 100vh; }
     
+    /* Левая панель */
     .panel { background: #fff; border-right: 1px solid #e5e7eb; padding: 20px; overflow-y: auto; max-height: 100vh; position: sticky; top: 0; }
     .panel h1 { font-size: 18px; margin: 0 0 6px; }
     .panel h2 { font-size: 15px; margin: 20px 0 8px; color: #374151; }
     .hint { font-size: 12px; color: #6b7280; margin: 0 0 12px; }
     
+    /* Поля ввода */
     .input-group { margin-bottom: 10px; }
     .input-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #4b5563; }
     .input-group input { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px; outline: none; }
@@ -45,48 +46,40 @@
     .btn.primary:hover { background: #1d4ed8; }
     .btn.secondary:hover { background: #f3f4f6; }
 
+    /* Правая панель (Предпросмотр A4) */
     .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; }
     .report { background: #fff; width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 25mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
     
+    /* Форматирование шапки */
     .report-header { text-align: left; padding-left: 11.25cm; margin-bottom: 24px; }
     .report-header p { margin: 0; }
     
     .report-title { text-align: center; font-size: 16pt; font-weight: bold; margin: 16px 0 24px; letter-spacing: 2px; text-transform: uppercase; }
     
+    /* Текст вступления */
     .report-body { text-align: justify; text-indent: 1.25cm; margin: 0 0 14px; }
     
-    /* Список картриджей (точная имитация абзаца Word) */
-    .report-list { margin: 0; padding: 0; }
-    .report-list .report-item { 
-      text-align: justify; 
-      text-indent: 1.25cm;
-      margin: 0;
-      padding: 0;
-    }
+    /* Список картриджей */
+    .report-list { margin: 0; padding-left: 1.25cm; text-align: justify; }
+    .report-list li { margin-bottom: 0; text-indent: 0; }
     
     .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; }
     
-    /* БЛОК ПОДПИСИ: убираем все лишние отступы между строками */
+    /* БЛОК ПОДПИСИ: заменяем p на div и обнуляем все отступы */
     .report-footer { margin-top: 40px; text-align: left; padding: 0; }
-    .report-footer p { 
-      margin: 0; 
-      padding: 0; 
-      text-indent: 0; 
-      line-height: 1.35; /* Одинарный интервал */
-    }
+    .report-footer div { margin: 0; padding: 0; line-height: 1.35; }
     
+    /* Строка со званием и ФИО */
     .report-footer .fio-row { 
       display: flex; 
-      justify-content: space-between; 
-      margin-top: 24px; /* Отступ только перед званием и ФИО */
-      padding: 0; 
-      text-align: left; 
+      justify-content: space-between;
+      margin-top: 24px; /* Отступ только тут */
+      padding: 0;
+      text-align: left;
     }
     .report-footer .fio-row .fio { text-align: right; }
     
-    .report-footer #date { 
-      margin-top: 16px; /* Отступ только перед датой */
-    }
+    .report-footer #date { margin-top: 16px; } /* Отступ только тут */
 
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
@@ -99,6 +92,7 @@
 </head>
 <body>
   <div class="layout">
+    <!-- ЛЕВАЯ ПАНЕЛЬ -->
     <aside class="panel">
       <h1>Заправка картриджей</h1>
       
@@ -126,11 +120,11 @@
 
       <div class="actions">
         <button id="docxBtn" class="btn primary">Скачать в DOCX</button>
-        <button id="pdfBtn" class="btn primary">Скачать в PDF</button>
         <button id="clearBtn" class="btn secondary">Очистить список</button>
       </div>
     </aside>
 
+    <!-- ПРАВАЯ ПАНЕЛЬ -->
     <main class="preview-wrap">
       <div id="report" class="report">
         <div class="report-header">
@@ -146,20 +140,20 @@
           Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:
         </p>
 
-        <div id="reportList" class="report-list"></div>
+        <ol id="reportList" class="report-list"></ol>
         <p id="emptyNote" class="empty-note">Добавьте картриджи из списка слева — они появятся здесь.</p>
 
+        <!-- Подпись (Используем div, чтобы убрать абзацы) -->
         <div class="report-footer">
-          <p id="reportPosition">Инженер ГИТСиЗИ</p>
-          <p>МО МВД России «Городецкий»</p>
+          <div id="reportPosition">Инженер ГИТСиЗИ</div>
+          <div>МО МВД России «Городецкий»</div>
           
-          <!-- Здесь мы жестко задаем отступ через CSS -->
           <div class="fio-row">
             <span id="reportRank" class="rank">мл. лейтенант внутренней службы</span>
             <span id="reportFio" class="fio">Иванов И.И.</span>
           </div>
           
-          <p id="date"></p>
+          <div id="date"></div>
         </div>
       </div>
     </main>
