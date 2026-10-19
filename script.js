@@ -179,7 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alignment: AlignmentType.LEFT,
       indent: { left: INDENT_11_25_CM, firstLine: 0 },
       spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
+      children: [ new TextRun({ text, font: FONT, size: SIZE, bold: false }) ]
     });
     children.push(pHeader("Начальнику МО МВД"));
     children.push(pHeader("России «Городецкий»"));
@@ -187,11 +187,20 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(pHeader("Трошину Н.С."));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // 2. Заголовок (не жирный, 14 шрифт)
+    // 2. Заголовок "Рапорт" (принудительно без жирности)
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: false }) ]
+      // Жестко указываем, что это обычный текст
+      style: "Normal", 
+      children: [ 
+        new TextRun({ 
+          text: "Рапорт", 
+          font: FONT, 
+          size: SIZE, 
+          bold: false 
+        }) 
+      ]
     }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
@@ -200,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alignment: AlignmentType.JUSTIFIED,
       indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM },
       spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
+      children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE, bold: false }) ]
     }));
 
     // 4. Список картриджей (Настоящий нумерованный список)
@@ -226,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alignment: AlignmentType.LEFT,
       indent: { left: 0, right: 0, firstLine: 0 },
       spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
+      children: [ new TextRun({ text, font: FONT, size: SIZE, bold: false }) ]
     });
 
     children.push(pSign(inputPosition.value.trim() || "Инженер ГИТСиЗИ"));
@@ -237,7 +246,7 @@ document.addEventListener("DOMContentLoaded", () => {
       indent: { left: 0, right: 0, firstLine: 0 },
       spacing: { before: 0, after: 0, line: 240 },
       tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POS }],
-      children: [ new TextRun({ text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), font: FONT, size: SIZE }) ]
+      children: [ new TextRun({ text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), font: FONT, size: SIZE, bold: false }) ]
     }));
 
     children.push(pSign(dateEl.textContent));
@@ -250,19 +259,19 @@ document.addEventListener("DOMContentLoaded", () => {
           levels: [
             {
               level: 0,
-              format: LevelFormat.DECIMAL, // 1, 2, 3
-              text: "%1.", // Точка после цифры
-              alignment: AlignmentType.LEFT, // Цифры по левому краю
+              format: LevelFormat.DECIMAL,
+              text: "%1.",
+              alignment: AlignmentType.LEFT,
               style: {
                 paragraph: {
-                  // Жестко задаем отступ первой строки 1.25 см и отступ слева 0
                   indent: { left: 0, firstLine: INDENT_1_25_CM }, 
-                  alignment: AlignmentType.JUSTIFIED, // По ширине
+                  alignment: AlignmentType.JUSTIFIED,
                   spacing: { before: 0, after: 0, line: 240 },
                 },
                 run: {
                   font: FONT,
-                  size: SIZE
+                  size: SIZE,
+                  bold: false
                 }
               }
             }
@@ -275,7 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
       numbering: numberingConfig,
       styles: {
         default: {
-          document: { run: { font: FONT, size: SIZE } }
+          document: { run: { font: FONT, size: SIZE, bold: false } }
         }
       },
       sections: [{ 
