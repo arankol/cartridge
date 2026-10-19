@@ -191,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text: "Рапорт", font: FONT, size: 32, bold: true }) ]
+      children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: true }) ]
     }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
@@ -210,8 +210,6 @@ document.addEventListener("DOMContentLoaded", () => {
       
       children.push(new Paragraph({
         text: reportLine(it) + punctuation,
-        alignment: AlignmentType.JUSTIFIED,
-        spacing: { before: 0, after: 0, line: 240 },
         numbering: {
           reference: "custom-numbering",
           level: 0,
@@ -257,7 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
               alignment: AlignmentType.LEFT,
               style: {
                 paragraph: {
-                  indent: { left: INDENT_1_25_CM, hanging: 360 },
+                  indent: { left: 0, firstLine: INDENT_1_25_CM }, 
                   alignment: AlignmentType.JUSTIFIED,
                   spacing: { before: 0, after: 0, line: 240 },
                 },
