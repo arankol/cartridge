@@ -58,8 +58,9 @@
     .report-list { margin: 0; padding-left: 1.5cm; }
     .report-list li { margin-bottom: 10px; text-align: justify; }
     .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; }
+    
     .report-footer { margin-top: 40px; }
-    .report-footer p { margin: 0; text-align: left; }
+    .report-footer p { margin: 0; text-align: left; padding-left: 11.25cm; } /* Сдвиг подписи вправо */
     .report-footer #reportRank { margin-top: 24px; }
     .report-footer #date { margin-top: 16px; }
 
@@ -68,6 +69,7 @@
       .panel { position: static; max-height: none; border-right: none; border-bottom: 1px solid #e5e7eb; }
       .preview-wrap { padding: 10px; }
       .report { width: 100%; min-height: auto; padding: 20px; font-size: 12pt; }
+      .report-footer p { padding-left: 0; }
     }
   </style>
 </head>
@@ -80,11 +82,15 @@
       <!-- БЛОК ВВОДА ДАННЫХ -->
       <div class="input-group">
         <label>Должность:</label>
-        <input type="text" id="inputPosition" value="Главный специалист-эксперт ОТО" placeholder="Введите должность" />
+        <input type="text" id="inputPosition" value="Инженер ГИТСиЗИ" placeholder="Введите должность" />
       </div>
       <div class="input-group">
-        <label>Звание и ФИО:</label>
-        <input type="text" id="inputRank" value="капитан полиции Иванов И.И." placeholder="Введите звание и ФИО" />
+        <label>Звание:</label>
+        <input type="text" id="inputRank" value="мл. лейтенант внутренней службы" placeholder="Введите звание" />
+      </div>
+      <div class="input-group">
+        <label>ФИО:</label>
+        <input type="text" id="inputFio" value="Иванов И.И." placeholder="Введите ФИО" />
       </div>
       
       <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 16px 0;">
@@ -107,7 +113,8 @@
     <main class="preview-wrap">
       <div id="report" class="report">
         <div class="report-header">
-          <p>Начальнику МО МВД России «Городецкий»</p>
+          <p>Начальнику МО МВД</p>
+          <p>России «Городецкий»</p>
           <p>полковнику полиции</p>
           <p>Трошину Н.С.</p>
         </div>
@@ -122,9 +129,9 @@
         <p id="emptyNote" class="empty-note">Добавьте картриджи из списка слева — они появятся здесь.</p>
 
         <div class="report-footer">
-          <p id="reportPosition">Главный специалист-эксперт ОТО</p>
+          <p id="reportPosition">Инженер ГИТСиЗИ</p>
           <p>МО МВД России «Городецкий»</p>
-          <p id="reportRank">капитан полиции Иванов И.И.</p>
+          <p id="reportRankAndFio">мл. лейтенант внутренней службы Иванов И.И.</p>
           <p id="date"></p>
         </div>
       </div>
