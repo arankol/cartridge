@@ -59,19 +59,34 @@
     .report-list { margin: 0; padding: 0; }
     .report-list .report-item { 
       text-align: justify; 
-      text-indent: 1.25cm; /* Отступ первой строки как в Word */
+      text-indent: 1.25cm;
       margin: 0;
       padding: 0;
     }
     
     .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; }
     
+    /* БЛОК ПОДПИСИ: убираем все лишние отступы между строками */
     .report-footer { margin-top: 40px; text-align: left; padding: 0; }
-    .report-footer p { margin: 0; text-indent: 0; padding-left: 0; }
+    .report-footer p { 
+      margin: 0; 
+      padding: 0; 
+      text-indent: 0; 
+      line-height: 1.35; /* Одинарный интервал */
+    }
     
-    .report-footer .fio-row { display: flex; justify-content: space-between; margin-top: 24px; padding: 0; text-align: left; }
+    .report-footer .fio-row { 
+      display: flex; 
+      justify-content: space-between; 
+      margin-top: 24px; /* Отступ только перед званием и ФИО */
+      padding: 0; 
+      text-align: left; 
+    }
     .report-footer .fio-row .fio { text-align: right; }
-    .report-footer #date { margin-top: 16px; }
+    
+    .report-footer #date { 
+      margin-top: 16px; /* Отступ только перед датой */
+    }
 
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
@@ -138,6 +153,7 @@
           <p id="reportPosition">Инженер ГИТСиЗИ</p>
           <p>МО МВД России «Городецкий»</p>
           
+          <!-- Здесь мы жестко задаем отступ через CSS -->
           <div class="fio-row">
             <span id="reportRank" class="rank">мл. лейтенант внутренней службы</span>
             <span id="reportFio" class="fio">Иванов И.И.</span>
