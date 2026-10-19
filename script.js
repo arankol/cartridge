@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportRank = $("#reportRank");
   const reportFio = $("#reportFio");
 
+  // Синхронизация полей ввода с предпросмотром
   function updatePreviewText() {
     reportPosition.textContent = inputPosition.value.trim() || "Инженер ГИТСиЗИ";
     reportRank.textContent = inputRank.value.trim() || "мл. лейтенант внутренней службы";
@@ -28,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if(inputRank) inputRank.addEventListener("input", updatePreviewText);
   if(inputFio) inputFio.addEventListener("input", updatePreviewText);
 
+  // Установка текущей даты
   const today = new Date();
   const day = String(today.getDate()).padStart(2, "0");
   const year = today.getFullYear();
@@ -35,6 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const month = months[today.getMonth()];
   if(dateEl) dateEl.textContent = `«${day}» ${month} ${year} г.`;
 
+  // --- ЗАГРУЗКА И ЧТЕНИЕ EXCEL ---
   async function loadExcel() {
     try {
       const response = await fetch("card.xlsx");
@@ -54,6 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const pInv  = (r[3] || "").toString().trim();
 
         if (!cName || /^итого$/i.test(cName)) continue;
+
         out.push({ id: i, cName, cInv, pName, pInv });
       }
       state.db = out;
@@ -64,12 +68,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // --- ОТРИСОВКА И ПОИСК ---
   const norm = (s) => (s || "").toString().toLowerCase();
   const escapeHtml = (s) => (s || "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
   function filteredItems() {
     const q = norm(state.query).trim();
     let items = state.db;
+    
     const selectedIds = new Set(state.selected.map(s => s.id));
     items = items.filter(it => !selectedIds.has(it.id));
 
@@ -134,19 +140,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Защита от разрыва пробелов в ключевых местах
-  function safeStr(str) {
-    return (str || "").toString()
-      .replace(/инв\.\s*№/g, "инв.\u00A0№")
-      .replace(/\s+к\s+/g, "\u00A0к\u00A0");
-  }
-
+  // --- ФОРМИРОВАНИЕ РАПОРТА ---
   function reportLine(it) {
-    const cName = safeStr(it.cName);
-    const cInv = safeStr(it.cInv || "—");
-    const pName = safeStr(it.pName);
-    const pInv = safeStr(it.pInv || "—");
-    return `${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}`;
+    return `${it.cName} инв. № ${it.cInv || "—"} к ${it.pName} инв. № ${it.pInv || "—"}`;
   }
 
   function renderReport() {
@@ -160,24 +156,25 @@ document.addEventListener("DOMContentLoaded", () => {
         const li = document.createElement("li");
         const isLast = idx === state.selected.length - 1;
         const punctuation = isLast ? "." : ";";
-        li.textContent = `${idx + 1}. ${reportLine(it)}${punctuation}`;
+        li.textContent = reportLine(it) + punctuation;
         reportListEl.appendChild(li);
       });
     }
   }
 
+  // --- СКАЧИВАНИЕ DOCX ---
   async function exportDocx() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     
     const docx = window.docx;
-    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType } = docx;
+    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType, LevelFormat, convertInchesToTwip } = docx;
     const FONT = "Times New Roman";
-    const SIZE = 28;
-    
-    // 1.25 см = 709 твипов
-    const INDENT_1_25_CM = 709;
-    const INDENT_11_25_CM = 6378;
-    const RIGHT_TAB_POS = 9070; // Прижатие ФИО вправо
+    const SIZE = 28; // 14 pt
+
+    // Значения отступов в Twip (1 см = 567 twip)
+    const INDENT_11_25_CM = 6378; // 11.25 см
+    const INDENT_1_25_CM = 709;   // 1.25 см
+    const RIGHT_TAB_POS = 9070;   // Позиция табуляции для прижатия ФИО к правому краю
 
     const children = [];
 
@@ -210,19 +207,18 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // 4. Список картриджей
-    state.selected.forEach((it, i) => {
-      const isLast = i === state.selected.length - 1;
-      const punctuation = isLast ? "." : ";";
-      
+    // 4. НАСТОЯЩИЙ НУМЕРОВАННЫЙ СПИСОК (с автоматическим переносом строк)
+    state.selected.forEach((it) => {
       children.push(new Paragraph({
-        alignment: AlignmentType.JUSTIFIED, // Выравнивание по ширине
-        indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM }, // Отступ 1.25 см, без выступов!
-        spacing: { before: 0, after: 0, line: 240 },
-        children: [ new TextRun({ text: `${i + 1}. ${reportLine(it)}${punctuation}`, font: FONT, size: SIZE }) ]
+        text: reportLine(it),
+        numbering: {
+          reference: "my-numbering",
+          level: 0, // Использует форматирование из настроек ниже
+        },
       }));
     });
 
+    // Пустые строки перед подписью
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
@@ -242,15 +238,61 @@ document.addEventListener("DOMContentLoaded", () => {
       indent: { left: 0, right: 0, firstLine: 0 },
       spacing: { before: 0, after: 0, line: 240 },
       tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POS }],
-      children: [ new TextRun({ text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), font: FONT, size: SIZE }) ]
+      children: [ 
+        new TextRun({ 
+          text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), 
+          font: FONT, size: SIZE 
+        }) 
+      ]
     }));
 
     children.push(pSign(dateEl.textContent));
 
+    // НАСТРОЙКА ФОРМАТИРОВАНИЯ ДЛЯ НУМЕРОВАННОГО СПИСКА
+    const numberingConfig = {
+      config: [
+        {
+          reference: "my-numbering",
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.DECIMAL,
+              text: "%1.",
+              alignment: AlignmentType.LEFT, // Выравнивание самих цифр влево
+              style: {
+                paragraph: {
+                  indent: {
+                    left: INDENT_1_25_CM, // Текст начинается с отступом 1.25 см
+                    hanging: INDENT_1_25_CM, // Первая строка с цифрой уходит на 1.25 см влево (создавая нужный отступ)
+                  },
+                  alignment: AlignmentType.JUSTIFIED, // Выравнивание самого текста по ширине
+                  spacing: {
+                    before: 0,
+                    after: 0,
+                    line: 240, // Одинарный интервал
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    };
+
+    // Настраиваем стили нумерации
     const doc = new Document({
-      styles: { default: { document: { run: { font: FONT, size: SIZE } } } },
+      numbering: numberingConfig,
+      styles: {
+        default: {
+          document: {
+            run: { font: FONT, size: SIZE },
+          }
+        }
+      },
       sections: [{ 
-        properties: { page: { margin: { top: 1134, bottom: 1134, right: 850, left: 1701 } } }, 
+        properties: { 
+          page: { margin: { top: 1134, bottom: 1134, right: 850, left: 1701 } } 
+        }, 
         children 
       }]
     });
@@ -263,21 +305,23 @@ document.addEventListener("DOMContentLoaded", () => {
       a.click();
     } catch (e) {
       console.error(e);
-      alert("Ошибка при создании DOCX.");
+      alert("Ошибка при создании файла DOCX.");
     }
   }
 
+  // --- СКАЧИВАНИЕ PDF ---
   function exportPdf() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     window.html2pdf().set({
       margin: 0,
       filename: `Рапорт_заправка_${Date.now()}.pdf`,
-      image: { type: "jpeg", quality: 1.0 },
+      image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
     }).from(document.getElementById("report")).save();
   }
 
+  // --- СОБЫТИЯ ---
   if(searchInput) searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
   const clearBtn = $("#clearBtn");
   if(clearBtn) clearBtn.addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
