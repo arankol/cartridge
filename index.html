@@ -1,307 +1,166 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const state = { db: [], selected: [], query: "" };
-  
-  const $ = (sel) => document.querySelector(sel);
-  const searchInput = $("#search");
-  const resultsEl = $("#results");
-  const selectedEl = $("#selected");
-  const countEl = $("#count");
-  const reportListEl = $("#reportList");
-  const emptyNote = $("#emptyNote");
-  const dateEl = $("#date");
-  
-  const inputPosition = $("#inputPosition");
-  const inputRank = $("#inputRank");
-  const inputFio = $("#inputFio");
-  
-  const reportPosition = $("#reportPosition");
-  const reportRank = $("#reportRank");
-  const reportFio = $("#reportFio");
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Рапорт на заправку картриджей</title>
 
-  function updatePreviewText() {
-    reportPosition.textContent = inputPosition.value.trim() || "Инженер ГИТСиЗИ";
-    reportRank.textContent = inputRank.value.trim() || "мл. лейтенант внутренней службы";
-    reportFio.textContent = inputFio.value.trim() || "Иванов И.И.";
-  }
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 
-  if(inputPosition) inputPosition.addEventListener("input", updatePreviewText);
-  if(inputRank) inputRank.addEventListener("input", updatePreviewText);
-  if(inputFio) inputFio.addEventListener("input", updatePreviewText);
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f3f4f6; color: #111; }
+    .layout { display: grid; grid-template-columns: 400px 1fr; min-height: 100vh; }
+    
+    /* Левая панель */
+    .panel { background: #fff; border-right: 1px solid #e5e7eb; padding: 20px; overflow-y: auto; max-height: 100vh; position: sticky; top: 0; }
+    .panel h1 { font-size: 18px; margin: 0 0 6px; }
+    .panel h2 { font-size: 15px; margin: 20px 0 8px; color: #374151; }
+    .hint { font-size: 12px; color: #6b7280; margin: 0 0 12px; }
+    
+    /* Поля ввода */
+    .input-group { margin-bottom: 10px; }
+    .input-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #4b5563; }
+    .input-group input { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px; outline: none; }
+    .input-group input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
 
-  const today = new Date();
-  const day = String(today.getDate()).padStart(2, "0");
-  const year = today.getFullYear();
-  const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-  const month = months[today.getMonth()];
-  if(dateEl) dateEl.textContent = `«${day}» ${month} ${year} г.`;
+    #search { width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 8px; outline: none; }
+    #search:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+    
+    .results, .selected { list-style: none; margin: 8px 0 0; padding: 0; }
+    .results { max-height: 300px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .results li { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 13px; }
+    .results li:last-child { border-bottom: none; }
+    .results li:hover { background: #eff6ff; }
+    .results .muted { color: #6b7280; font-size: 11px; margin-top: 4px; }
+    
+    .selected li { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+    .selected li button { background: none; border: none; color: #dc2626; font-size: 20px; cursor: pointer; line-height: 1; padding: 0; }
+    .selected .muted { font-size: 11px; color: #6b7280; margin-top: 4px; }
+    .empty-hint { font-size: 12px; color: #9ca3af; padding: 10px; text-align: center; }
+    
+    .actions { margin-top: 20px; display: grid; gap: 8px; }
+    .btn { padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; cursor: pointer; font-size: 14px; background: #fff; font-weight: bold; transition: 0.2s;}
+    .btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .btn.primary:hover { background: #1d4ed8; }
+    .btn.secondary:hover { background: #f3f4f6; }
 
-  async function loadExcel() {
-    try {
-      const response = await fetch("card.xlsx");
-      if (!response.ok) throw new Error("Файл не найден");
-      
-      const arrayBuffer = await response.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false, defval: "" });
-      
-      const out = [];
-      for (let i = 1; i < rows.length; i++) {
-        const r = rows[i];
-        const cName = (r[0] || "").toString().trim();
-        const cInv  = (r[1] || "").toString().trim();
-        const pName = (r[2] || "").toString().trim();
-        const pInv  = (r[3] || "").toString().trim();
-
-        if (!cName || /^итого$/i.test(cName)) continue;
-
-        out.push({ id: i, cName, cInv, pName, pInv });
-      }
-      state.db = out;
-      renderResults();
-    } catch (error) {
-      console.error(error);
-      if(resultsEl) resultsEl.innerHTML = `<li class="empty-hint" style="color: #dc2626;">Ошибка чтения card.xlsx.</li>`;
-    }
-  }
-
-  const norm = (s) => (s || "").toString().toLowerCase();
-  const escapeHtml = (s) => (s || "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-
-  function filteredItems() {
-    const q = norm(state.query).trim();
-    let items = state.db;
-    const selectedIds = new Set(state.selected.map(s => s.id));
-    items = items.filter(it => !selectedIds.has(it.id));
-
-    if (!q) return items.slice(0, 300);
-    return items.filter(it =>
-      norm(it.cName).includes(q) ||
-      norm(it.cInv).includes(q) ||
-      norm(it.pName).includes(q) ||
-      norm(it.pInv).includes(q)
-    ).slice(0, 500);
-  }
-
-  function renderResults() {
-    if(!resultsEl) return;
-    const items = filteredItems();
-    resultsEl.innerHTML = "";
-    if (!items.length) {
-      resultsEl.innerHTML = `<li class="empty-hint">Ничего не найдено</li>`;
-      return;
+    /* Правая панель (Предпросмотр A4) */
+    .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; min-width: 0; }
+    .report { background: #fff; width: 210mm; min-width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 30mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
+    
+    /* Форматирование шапки */
+    .report-header { text-align: left; padding-left: 11.25cm; margin-bottom: 24px; }
+    .report-header p { margin: 0; }
+    
+    /* Заголовок Рапорт (не жирный, 14pt) */
+    .report-title { 
+      text-align: center; 
+      font-size: 14pt; 
+      font-weight: normal; 
+      margin: 16px 0 24px; 
+      letter-spacing: 0px; 
+      text-transform: uppercase; 
     }
     
-    items.forEach(it => {
-      const li = document.createElement("li");
-      li.innerHTML = `
-        <div><strong>${escapeHtml(it.cName)}</strong></div>
-        <div class="muted">Инв. № ${escapeHtml(it.cInv || "—")} → ${escapeHtml(it.pName)} (${escapeHtml(it.pInv || "—")})</div>
-      `;
-      li.addEventListener("click", () => addItem(it));
-      resultsEl.appendChild(li);
-    });
-  }
+    /* Текст по ширине, первая строка 1.25 см */
+    .report-body { text-align: justify; text-indent: 1.25cm; margin: 0 0 14px; }
+    .report-list { margin: 0; padding-left: 1.25cm; text-align: justify; }
+    .report-list li { margin-bottom: 0; text-indent: 0; }
+    
+    .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; }
+    
+    /* Подпись */
+    .report-footer { margin-top: 40px; text-align: left; padding: 0; }
+    .report-footer p { margin: 0; text-indent: 0; padding-left: 0; }
+    
+    .report-footer .fio-row { 
+      display: flex; 
+      justify-content: space-between; 
+      margin-top: 0; 
+      padding: 0;
+      text-align: left;
+    }
+    .report-footer .fio-row .fio { text-align: right; }
+    
+    .report-footer #date { margin-top: 0; }
 
-  function addItem(it) {
-    state.selected.push(it);
-    renderSelected();
-    renderReport();
-    renderResults();
-  }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .panel { position: static; max-height: none; border-right: none; border-bottom: 1px solid #e5e7eb; }
+      .preview-wrap { padding: 10px; }
+      .report { width: 210mm; min-width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 30mm; font-size: 14pt; }
+      .report-header { padding-left: 11.25cm; text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="panel">
+      <h1>Заправка картриджей</h1>
+      
+      <div class="input-group">
+        <label>Должность:</label>
+        <input type="text" id="inputPosition" value="Инженер ГИТСиЗИ" placeholder="Введите должность" />
+      </div>
+      <div class="input-group">
+        <label>Звание:</label>
+        <input type="text" id="inputRank" value="мл. лейтенант внутренней службы" placeholder="Введите звание" />
+      </div>
+      <div class="input-group">
+        <label>ФИО:</label>
+        <input type="text" id="inputFio" value="Иванов И.И." placeholder="Введите ФИО" />
+      </div>
+      
+      <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 16px 0;">
 
-  function removeItem(idx) {
-    state.selected.splice(idx, 1);
-    renderSelected();
-    renderReport();
-    renderResults();
-  }
+      <p class="hint">Используйте поиск. Нажмите на картридж, чтобы добавить его в рапорт.</p>
+      <input id="search" type="text" placeholder="Поиск: название, инв. №, принтер..." autocomplete="off" />
+      <ul id="results" class="results"></ul>
 
-  function renderSelected() {
-    if(!selectedEl) return;
-    countEl.textContent = state.selected.length;
-    selectedEl.innerHTML = "";
-    state.selected.forEach((it, idx) => {
-      const li = document.createElement("li");
-      li.innerHTML = `
-        <div>
-          <div><strong>${escapeHtml(it.cName)}</strong> — ${escapeHtml(it.cInv || "—")}</div>
-          <div class="muted">${escapeHtml(it.pName)} (${escapeHtml(it.pInv || "—")})</div>
+      <h2>В рапорте (<span id="count">0</span>)</h2>
+      <ul id="selected" class="selected"></ul>
+
+      <div class="actions">
+        <button id="docxBtn" class="btn primary">Скачать в DOCX</button>
+        <button id="clearBtn" class="btn secondary">Очистить список</button>
+      </div>
+    </aside>
+
+    <main class="preview-wrap">
+      <div id="report" class="report">
+        <div class="report-header">
+          <p>Начальнику МО МВД</p>
+          <p>России «Городецкий»</p>
+          <p>полковнику полиции</p>
+          <p>Трошину Н.С.</p>
         </div>
-        <button title="Удалить">×</button>
-      `;
-      li.querySelector("button").addEventListener("click", () => removeItem(idx));
-      selectedEl.appendChild(li);
-    });
-  }
 
-  function reportLine(it) {
-    const cName = it.cName;
-    const cInv = it.cInv || "—";
-    const pName = it.pName;
-    const pInv = it.pInv || "—";
-    return `${cName} инв. № ${cInv} к ${pName} инв. № ${pInv}`;
-  }
+        <h2 class="report-title">Рапорт</h2>
 
-  function renderReport() {
-    if(!reportListEl) return;
-    reportListEl.innerHTML = "";
-    if (!state.selected.length) {
-      emptyNote.style.display = "";
-    } else {
-      emptyNote.style.display = "none";
-      state.selected.forEach((it, idx) => {
-        const li = document.createElement("li");
-        const isLast = idx === state.selected.length - 1;
-        const punctuation = isLast ? "." : ";";
-        li.textContent = reportLine(it) + punctuation;
-        reportListEl.appendChild(li);
-      });
-    }
-  }
+        <p class="report-body">
+          Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:
+        </p>
 
-  async function exportDocx() {
-    if (!state.selected.length) return alert("Сначала добавьте картриджи.");
-    
-    const docx = window.docx;
-    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType, LevelFormat } = docx;
-    const FONT = "Times New Roman";
-    const SIZE = 28;
+        <ol id="reportList" class="report-list"></ol>
+        <p id="emptyNote" class="empty-note">Добавьте картриджи из списка слева — они появятся здесь.</p>
 
-    const INDENT_11_25_CM = 6378;
-    const INDENT_1_25_CM = 709;
-    const RIGHT_TAB_POS = 9070;
+        <div class="report-footer">
+          <p id="reportPosition">Инженер ГИТСиЗИ</p>
+          <p>МО МВД России «Городецкий»</p>
+          
+          <div class="fio-row">
+            <span id="reportRank" class="rank">мл. лейтенант внутренней службы</span>
+            <span id="reportFio" class="fio">Иванов И.И.</span>
+          </div>
+          
+          <p id="date"></p>
+        </div>
+      </div>
+    </main>
+  </div>
 
-    const children = [];
-
-    // 1. Шапка
-    const pHeader = (text) => new Paragraph({
-      alignment: AlignmentType.LEFT,
-      indent: { left: INDENT_11_25_CM, firstLine: 0 },
-      spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
-    });
-    children.push(pHeader("Начальнику МО МВД"));
-    children.push(pHeader("России «Городецкий»"));
-    children.push(pHeader("полковнику полиции"));
-    children.push(pHeader("Трошину Н.С."));
-    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
-
-    // 2. Заголовок Рапорт (не жирный, 14pt)
-    children.push(new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: false }) ]
-    }));
-    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
-
-    // 3. Вступление
-    children.push(new Paragraph({
-      alignment: AlignmentType.JUSTIFIED,
-      indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM },
-      spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
-    }));
-
-    // 4. Список картриджей
-    state.selected.forEach((it, i) => {
-      const isLast = i === state.selected.length - 1;
-      const punctuation = isLast ? "." : ";";
-      
-      children.push(new Paragraph({
-        text: reportLine(it) + punctuation,
-        alignment: AlignmentType.JUSTIFIED,
-        spacing: { before: 0, after: 0, line: 240 },
-        numbering: {
-          reference: "custom-numbering",
-          level: 0,
-          instance: 0
-        }
-      }));
-    });
-
-    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
-    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
-
-    // 5. Подпись
-    const pSign = (text) => new Paragraph({
-      alignment: AlignmentType.LEFT,
-      indent: { left: 0, right: 0, firstLine: 0 },
-      spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
-    });
-
-    children.push(pSign(inputPosition.value.trim() || "Инженер ГИТСиЗИ"));
-    children.push(pSign("МО МВД России «Городецкий»"));
-    
-    children.push(new Paragraph({
-      alignment: AlignmentType.LEFT,
-      indent: { left: 0, right: 0, firstLine: 0 },
-      spacing: { before: 0, after: 0, line: 240 },
-      tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POS }],
-      children: [ new TextRun({ text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), font: FONT, size: SIZE }) ]
-    }));
-
-    children.push(pSign(dateEl.textContent));
-
-    const numberingConfig = {
-      config: [
-        {
-          reference: "custom-numbering",
-          levels: [
-            {
-              level: 0,
-              format: LevelFormat.DECIMAL,
-              text: "%1.",
-              alignment: AlignmentType.LEFT,
-              style: {
-                paragraph: {
-                  indent: { left: INDENT_1_25_CM, hanging: 360 },
-                  alignment: AlignmentType.JUSTIFIED,
-                  spacing: { before: 0, after: 0, line: 240 },
-                },
-                run: {
-                  font: FONT,
-                  size: SIZE
-                }
-              }
-            }
-          ]
-        }
-      ]
-    };
-
-    const doc = new Document({
-      numbering: numberingConfig,
-      styles: {
-        default: {
-          document: { run: { font: FONT, size: SIZE } }
-        }
-      },
-      sections: [{ 
-        properties: { page: { margin: { top: 1134, bottom: 1134, right: 850, left: 1701 } } }, 
-        children 
-      }]
-    });
-    
-    try {
-      const blob = await Packer.toBlob(doc);
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `Рапорт_заправка_${Date.now()}.docx`;
-      a.click();
-    } catch (e) {
-      console.error(e);
-      alert("Ошибка при создании DOCX.");
-    }
-  }
-
-  if(searchInput) searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
-  const clearBtn = $("#clearBtn");
-  if(clearBtn) clearBtn.addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
-  
-  const docxBtn = $("#docxBtn");
-  if(docxBtn) docxBtn.addEventListener("click", exportDocx);
-
-  loadExcel();
-});
+  <script src="script.js"></script>
+</body>
+</html>
