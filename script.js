@@ -135,7 +135,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Защита от разрыва пробелов в ключевых местах
   function safeStr(str) {
     return (str || "").toString()
       .replace(/инв\.\s*№/g, "инв.\u00A0№")
@@ -158,12 +157,14 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       emptyNote.style.display = "none";
       state.selected.forEach((it, idx) => {
-        const li = document.createElement("li");
+        const div = document.createElement("div");
+        div.className = "report-item";
         const isLast = idx === state.selected.length - 1;
         const punctuation = isLast ? "." : ";";
-        // Принудительно добавляем номер и точку в начало
-        li.textContent = `${idx + 1}. ${reportLine(it)}${punctuation}`;
-        reportListEl.appendChild(li);
+        
+        // Вручную ставим цифру и точку, как в Word
+        div.textContent = `${idx + 1}. ${reportLine(it)}${punctuation}`;
+        reportListEl.appendChild(div);
       });
     }
   }
