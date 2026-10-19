@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Рапорт на заправку картриджей</title>
+
+  <!-- Библиотеки для работы с Excel, DOCX и PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f3f4f6; color: #111; }
+    .layout { display: grid; grid-template-columns: 400px 1fr; min-height: 100vh; }
+    
+    /* Левая панель */
+    .panel { background: #fff; border-right: 1px solid #e5e7eb; padding: 20px; overflow-y: auto; max-height: 100vh; position: sticky; top: 0; }
+    .panel h1 { font-size: 18px; margin: 0 0 6px; }
+    .panel h2 { font-size: 15px; margin: 20px 0 8px; color: #374151; }
+    .hint { font-size: 12px; color: #6b7280; margin: 0 0 12px; }
+    #search { width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 8px; outline: none; }
+    #search:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+    
+    .results, .selected { list-style: none; margin: 8px 0 0; padding: 0; }
+    .results { max-height: 300px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .results li { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 13px; }
+    .results li:last-child { border-bottom: none; }
+    .results li:hover { background: #eff6ff; }
+    .results .muted { color: #6b7280; font-size: 11px; margin-top: 4px; }
+    
+    .selected li { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+    .selected li button { background: none; border: none; color: #dc2626; font-size: 20px; cursor: pointer; line-height: 1; padding: 0; }
+    .selected .muted { font-size: 11px; color: #6b7280; margin-top: 4px; }
+    .empty-hint { font-size: 12px; color: #9ca3af; padding: 10px; text-align: center; }
+    
+    .actions { margin-top: 20px; display: grid; gap: 8px; }
+    .btn { padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; cursor: pointer; font-size: 14px; background: #fff; font-weight: bold; transition: 0.2s;}
+    .btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .btn.primary:hover { background: #1d4ed8; }
+    .btn.secondary:hover { background: #f3f4f6; }
+
+    /* Правая панель (Предпросмотр) */
+    .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; }
+    .report { background: #fff; width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 25mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
+    .report-header { text-align: right; margin-bottom: 24px; }
+    .report-header p { margin: 0; text-align: right; }
+    .report-title { text-align: center; font-size: 16pt; font-weight: bold; margin: 16px 0 24px; letter-spacing: 2px; text-transform: uppercase; }
+    .report-body { text-align: justify; text-indent: 1.25cm; margin: 0 0 14px; }
+    .report-list { margin: 0; padding-left: 1.5cm; }
+    .report-list li { margin-bottom: 10px; text-align: justify; }
+    .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; }
+    .report-footer { margin-top: 40px; }
+    .report-footer p { margin: 0; text-align: left; }
+    .report-footer #fio { margin-top: 24px; }
+    .report-footer #date { margin-top: 16px; }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .panel { position: static; max-height: none; border-right: none; border-bottom: 1px solid #e5e7eb; }
+      .preview-wrap { padding: 10px; }
+      .report { width: 100%; min-height: auto; padding: 20px; font-size: 12pt; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ЛЕВАЯ ПАНЕЛЬ -->
+    <aside class="panel">
+      <h1>Заправка картриджей</h1>
+      <p class="hint">База загружена из <strong>card.xlsx</strong>. Используйте поиск.</p>
+
+      <input id="search" type="text" placeholder="Поиск: название, инв. №, принтер..." autocomplete="off" />
+      <ul id="results" class="results"></ul>
+
+      <h2>В рапорте (<span id="count">0</span>)</h2>
+      <ul id="selected" class="selected"></ul>
+
+      <div class="actions">
+        <button id="docxBtn" class="btn primary">Скачать в DOCX</button>
+        <button id="pdfBtn" class="btn primary">Скачать в PDF</button>
+        <button id="clearBtn" class="btn secondary">Очистить список</button>
+      </div>
+    </aside>
+
+    <!-- ПРАВАЯ ПАНЕЛЬ -->
+    <main class="preview-wrap">
+      <div id="report" class="report">
+        <div class="report-header">
+          <p>Начальнику МО МВД России «Городецкий»</p>
+          <p>полковнику полиции</p>
+          <p>Трошину Н.С.</p>
+        </div>
+
+        <h2 class="report-title">Рапорт</h2>
+
+        <p class="report-body">
+          Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:
+        </p>
+
+        <ol id="reportList" class="report-list"></ol>
+        <p id="emptyNote" class="empty-note">Добавьте картриджи из списка слева — они появятся здесь.</p>
+
+        <div class="report-footer">
+          <p>Главный специалист-эксперт ОТО</p>
+          <p>МО МВД России «Городецкий»</p>
+          <p id="fio">капитан полиции Иванов И.И.</p>
+          <p id="date"></p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Подключаем скрипт логики -->
+  <script src="script.js"></script>
+</body>
+</html>
