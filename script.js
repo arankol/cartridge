@@ -166,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const docx = window.docx;
     const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType, LevelFormat } = docx;
     const FONT = "Times New Roman";
-    const SIZE = 28; // 14pt
+    const SIZE = 28;
 
     const INDENT_11_25_CM = 6378; // 11.25 см
     const INDENT_1_25_CM = 709;   // 1.25 см
@@ -187,11 +187,11 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(pHeader("Трошину Н.С."));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // 2. Заголовок (не жирный, 14 шрифт)
+    // 2. Заголовок
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: false }) ]
+      children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: true }) ]
     }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
