@@ -74,8 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function filteredItems() {
     const q = norm(state.query).trim();
     let items = state.db;
-    
-    // Скрываем уже добавленные
     const selectedIds = new Set(state.selected.map(s => s.id));
     items = items.filter(it => !selectedIds.has(it.id));
 
@@ -141,22 +139,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- ФОРМИРОВАНИЕ ТЕКСТА ---
-  // Заменяем обычные пробелы на неразрывные, чтобы не было "дыр"
-  function safeStr(str) {
-    return (str || "").toString()
-      .replace(/инв\.\s*№/g, "инв.\u00A0№")
-      .replace(/\s+к\s+/g, "\u00A0к\u00A0");
-  }
-
   function reportLine(it) {
-    const cName = safeStr(it.cName);
-    const cInv = safeStr(it.cInv || "—");
-    const pName = safeStr(it.pName);
-    const pInv = safeStr(it.pInv || "—");
-    return `${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}`;
+    // Используем обычные пробелы, так как выравнивать по ширине мы больше не будем
+    return `${it.cName} инв. № ${it.cInv || "—"} к ${it.pName} инв. № ${it.pInv || "—"}`;
   }
 
-  // --- ОТРИСОВКА ПРЕДПРОСМОТРА (Исправлено) ---
+  // --- ОТРИСОВКА ПРЕДПРОСМОТРА ---
   function renderReport() {
     if(!reportListEl) return;
     reportListEl.innerHTML = "";
@@ -169,9 +157,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const isLast = idx === state.selected.length - 1;
         const punctuation = isLast ? "." : ";";
         
-        // Жестко задаем отступ для первой строки
-        div.style.textIndent = "1.25cm";
-        div.style.textAlign = "justify";
+        // Выравниваем по левому краю и делаем висячий отступ (номер слева, текст ровно)
+        div.style.textAlign = "left"; 
+        div.style.paddingLeft = "1.25cm";
+        div.style.textIndent = "-1.25cm";
         div.style.marginBottom = "0";
         div.textContent = `${idx + 1}. ${reportLine(it)}${punctuation}`;
         reportListEl.appendChild(div);
@@ -179,104 +168,78 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- СКАЧИВАНИЕ DOCX (Исправлено) ---
+  // --- СКАЧИВАНИЕ DOCX ---
   async function exportDocx() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     
     const docx = window.docx;
-    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType } = docx;
+    const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
     const FONT = "Times New Roman";
-    const SIZE = 28;
+    const SIZE = 28; // 14 pt
 
-    const INDENT_11_25_CM = 6378;
-    const INDENT_1_25_CM = 709;
-    const RIGHT_TAB_POS = 9070;
+    // 1 см = 567 твипов (twip)
+    const CM_1_25 = 709; 
+    const CM_11_25 = 6378;
 
     const children = [];
 
-    // Шапка
+    // 1. Шапка (Отступ слева 11.25 см)
     const pHeader = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
-      indent: { left: INDENT_11_25_CM, firstLine: 0 },
-      spacing: { before: 0, after: 0, line: 240 },
+      indent: { left: CM_11_25 },
+      spacing: { line: 240, before: 0, after: 0 },
       children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
     });
     children.push(pHeader("Начальнику МО МВД"));
     children.push(pHeader("России «Городецкий»"));
     children.push(pHeader("полковнику полиции"));
     children.push(pHeader("Трошину Н.С."));
+    children.push(new Paragraph({ spacing: { line: 240 } })); // Пустая строка
 
-    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
-
-    // Заголовок
+    // 2. Заголовок
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { before: 0, after: 0, line: 240 },
+      spacing: { line: 240, after: 240 },
       children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: true }) ]
     }));
-    
-    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // Вступление
+    // 3. Вступление (По ширине, отступ первой строки 1.25 см)
     children.push(new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
-      indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM },
-      spacing: { before: 0, after: 0, line: 240 },
+      indent: { firstLine: CM_1_25 },
+      spacing: { line: 240, after: 120 },
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // СПИСОК КАРТРИДЖЕЙ
+    // 4. Список картриджей (По ЛЕВОМУ краю с висячим отступом, чтобы не было дыр)
     state.selected.forEach((it, i) => {
       const isLast = i === state.selected.length - 1;
       const punctuation = isLast ? "." : ";";
       
-      const cName = safeStr(it.cName);
-      const cInv = safeStr(it.cInv || "—");
-      const pName = safeStr(it.pName);
-      const pInv = safeStr(it.pInv || "—");
-      
-      const prefix = `${i + 1}. `;
-      const textBody = `${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}${punctuation}`;
-
-      // Используем ТАБУЛЯЦИЮ для номера, чтобы текст был ровным
       children.push(new Paragraph({
-        alignment: AlignmentType.JUSTIFIED,
-        indent: { left: INDENT_1_25_CM, right: 0, firstLine: -INDENT_1_25_CM }, // Выступ
-        tabStops: [{ type: TabStopType.LEFT, position: INDENT_1_25_CM }],
-        spacing: { before: 0, after: 0, line: 240 },
-        children: [ new TextRun({ text: prefix + "\t" + textBody, font: FONT, size: SIZE }) ]
+        alignment: AlignmentType.LEFT, // Выравнивание по левому краю
+        indent: { left: CM_1_25, hanging: CM_1_25 }, // Висячий отступ
+        spacing: { line: 240, after: 0 },
+        children: [ new TextRun({ text: `${i + 1}. ${reportLine(it)}${punctuation}`, font: FONT, size: SIZE }) ]
       }));
     });
 
-    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
-    children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
+    children.push(new Paragraph({ spacing: { line: 240 } }));
+    children.push(new Paragraph({ spacing: { line: 240 } }));
 
-    // Подпись
+    // 5. Подпись
     const pSign = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
-      indent: { left: 0, right: 0, firstLine: 0 },
-      spacing: { before: 0, after: 0, line: 240 },
+      spacing: { line: 240, after: 0 },
       children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
     });
 
     children.push(pSign(inputPosition.value.trim() || "Инженер ГИТСиЗИ"));
     children.push(pSign("МО МВД России «Городецкий»"));
-    
-    children.push(new Paragraph({
-      alignment: AlignmentType.LEFT,
-      indent: { left: 0, right: 0, firstLine: 0 },
-      spacing: { before: 0, after: 0, line: 240 },
-      tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POS }],
-      children: [ 
-        new TextRun({ 
-          text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), 
-          font: FONT, size: SIZE 
-        }) 
-      ]
-    }));
-
+    children.push(pSign(`${inputRank.value.trim() || "мл. лейтенант внутренней службы"} \t\t\t\t ${inputFio.value.trim() || "Иванов И.И."}`)); // Отступ через табы
     children.push(pSign(dateEl.textContent));
 
+    // Настройка документа
     const doc = new Document({
       styles: { default: { document: { run: { font: FONT, size: SIZE } } } },
       sections: [{ 
@@ -313,7 +276,6 @@ document.addEventListener("DOMContentLoaded", () => {
         scale: 3, 
         useCORS: true, 
         backgroundColor: "#ffffff",
-        letterRendering: true,
         wordSpacing: 0 
       },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
