@@ -168,8 +168,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const FONT = "Times New Roman";
     const SIZE = 28;
 
-    const INDENT_11_25_CM = 6378;
-    const INDENT_1_25_CM = 709;
+    const INDENT_11_25_CM = 6378; // 11.25 см
+    const INDENT_1_25_CM = 709;   // 1.25 см
     const RIGHT_TAB_POS = 9070;
 
     const children = [];
@@ -187,11 +187,11 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(pHeader("Трошину Н.С."));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // 2. Заголовок Рапорт (не жирный, 14pt)
+    // 2. Заголовок
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: false }) ]
+      children: [ new TextRun({ text: "Рапорт", font: FONT, size: 28, bold: false }) ]
     }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
@@ -203,7 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // 4. Список картриджей
+    // 4. Список картриджей (Настоящий нумерованный список)
     state.selected.forEach((it, i) => {
       const isLast = i === state.selected.length - 1;
       const punctuation = isLast ? "." : ";";
@@ -244,6 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     children.push(pSign(dateEl.textContent));
 
+    // Настройка нумерации Word
     const numberingConfig = {
       config: [
         {
@@ -292,7 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
       a.click();
     } catch (e) {
       console.error(e);
-      alert("Ошибка при создании DOCX.");
+      alert("Ошибка при создании DOCX. Проверьте консоль.");
     }
   }
 
