@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if(inputRank) inputRank.addEventListener("input", updatePreviewText);
   if(inputFio) inputFio.addEventListener("input", updatePreviewText);
 
-  // Установка текущей даты (в формате «19» октября 2026 г.)
+  // Установка текущей даты
   const today = new Date();
   const day = String(today.getDate()).padStart(2, "0");
   const year = today.getFullYear();
@@ -152,9 +152,12 @@ document.addEventListener("DOMContentLoaded", () => {
       emptyNote.style.display = "";
     } else {
       emptyNote.style.display = "none";
-      state.selected.forEach(it => {
+      state.selected.forEach((it, idx) => {
         const li = document.createElement("li");
-        li.textContent = reportLine(it) + ";";
+        // Если это последний элемент - ставим точку, иначе точку с запятой
+        const isLast = idx === state.selected.length - 1;
+        const punctuation = isLast ? "." : ";";
+        li.textContent = reportLine(it) + punctuation;
         reportListEl.appendChild(li);
       });
     }
@@ -165,13 +168,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     
     const docx = window.docx;
-    const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
+    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType, TabStopPosition } = docx;
     const FONT = "Times New Roman";
     const SIZE = 28; // 14 pt
 
     // Значения отступов в Twip (1 см = 567 twip)
     const INDENT_11_25_CM = 6378; // 11.25 см
     const INDENT_1_25_CM = 709;   // 1.25 см
+    const RIGHT_TAB_POS = 9070;   // Позиция табуляции для прижатия ФИО к правому краю (в Twip)
 
     const children = [];
 
@@ -179,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const pHeader = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: INDENT_11_25_CM, firstLine: 0 },
-      spacing: { before: 0, after: 0, line: 240 }, // 240 = одинарный интервал
+      spacing: { before: 0, after: 0, line: 240 },
       children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
     });
     children.push(pHeader("Начальнику МО МВД"));
@@ -187,10 +191,10 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(pHeader("полковнику полиции"));
     children.push(pHeader("Трошину Н.С."));
 
-    // Пустая строка для отступа
+    // Пустая строка
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // Заголовок "Рапорт" (по центру, жирный)
+    // Заголовок "Рапорт"
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 0, line: 240 },
@@ -199,7 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // 2. Вступление (Выравнивание по ширине, первая строка 1.25 см)
+    // 2. Вступление
     children.push(new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM },
@@ -207,13 +211,15 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // 3. Список картриджей (Выравнивание по ширине, первая строка 1.25 см)
+    // 3. Список картриджей
     state.selected.forEach((it, i) => {
+      const isLast = i === state.selected.length - 1;
+      const punctuation = isLast ? "." : ";";
       children.push(new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
         indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM },
         spacing: { before: 0, after: 0, line: 240 },
-        children: [ new TextRun({ text: `${i + 1}. ${reportLine(it)};`, font: FONT, size: SIZE }) ]
+        children: [ new TextRun({ text: `${i + 1}. ${reportLine(it)}${punctuation}`, font: FONT, size: SIZE }) ]
       }));
     });
 
@@ -221,7 +227,7 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // 4. Подпись (Выравнивание по левому краю, отступы 0)
+    // 4. Подпись
     const pSign = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: 0, right: 0, firstLine: 0 },
@@ -232,28 +238,28 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(pSign(inputPosition.value.trim() || "Инженер ГИТСиЗИ"));
     children.push(pSign("МО МВД России «Городецкий»"));
     
-    // Строка со званием и ФИО. Чтобы ФИО было справа, используем табуляцию (Tab)
-    // В Word \t - это таб. Мы создаем параграф с табуляцией.
+    // Строка со званием и ФИО
     children.push(new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: 0, right: 0, firstLine: 0 },
       spacing: { before: 0, after: 0, line: 240 },
+      // Добавляем настройку табуляции (прижимает ФИО вправо)
+      tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POS }],
       children: [ 
-        new TextRun({ text: inputRank.value.trim() + "\t" + inputFio.value.trim(), font: FONT, size: SIZE }) 
+        new TextRun({ 
+          text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), 
+          font: FONT, size: SIZE 
+        }) 
       ]
     }));
 
     children.push(pSign(dateEl.textContent));
 
-    // Создаем документ
     const doc = new Document({
       styles: { default: { document: { run: { font: FONT, size: SIZE } } } },
       sections: [{ 
         properties: { 
-          page: { 
-            // Поля страницы: 2 см сверху/снизу, 1.5 см справа, 3 см слева (примерно как в Word по умолчанию)
-            margin: { top: 1134, bottom: 1134, right: 850, left: 1701 } 
-          } 
+          page: { margin: { top: 1134, bottom: 1134, right: 850, left: 1701 } } 
         }, 
         children 
       }]
@@ -267,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
       a.click();
     } catch (e) {
       console.error(e);
-      alert("Ошибка при создании файла DOCX. Проверьте консоль.");
+      alert("Ошибка при создании файла DOCX.");
     }
   }
 
@@ -294,6 +300,5 @@ document.addEventListener("DOMContentLoaded", () => {
   const pdfBtn = $("#pdfBtn");
   if(pdfBtn) pdfBtn.addEventListener("click", exportPdf);
 
-  // Запускаем загрузку Excel при старте
   loadExcel();
 });
