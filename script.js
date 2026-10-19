@@ -9,6 +9,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportListEl = $("#reportList");
   const emptyNote = $("#emptyNote");
   const dateEl = $("#date");
+  
+  const inputPosition = $("#inputPosition");
+  const inputRank = $("#inputRank");
+  const reportPosition = $("#reportPosition");
+  const reportRank = $("#reportRank");
+
+  // Синхронизация полей ввода с предпросмотром
+  inputPosition.addEventListener("input", (e) => { reportPosition.textContent = e.target.value || "Главный специалист-эксперт ОТО"; });
+  inputRank.addEventListener("input", (e) => { reportRank.textContent = e.target.value || "капитан полиции Иванов И.И."; });
 
   // Установка текущей даты
   const today = new Date();
@@ -19,7 +28,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- ЗАГРУЗКА И ЧТЕНИЕ EXCEL ---
   async function loadExcel() {
     try {
-      // Ищем файл card.xlsx в той же папке
       const response = await fetch("card.xlsx");
       if (!response.ok) throw new Error("Файл не найден");
       
@@ -40,17 +48,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!cName) continue; // Пропускаем пустые строки
         if (/^итого$/i.test(cName)) continue; // Пропускаем строку "Итого"
 
-        out.push({ cName, cInv, pName, pInv });
+        // Создаем уникальный ID для каждой строки
+        const id = `${cName}|${cInv}|${pInv}`.replace(/\s+/g, '');
+        out.push({ id, cName, cInv, pName, pInv });
       }
       state.db = out;
       renderResults();
     } catch (error) {
       console.error(error);
-      document.getElementById("results").innerHTML = `
+      resultsEl.innerHTML = `
         <li class="empty-hint" style="color: #dc2626;">
           Ошибка чтения card.xlsx.<br><br>
-          Если вы открыли файл двойным кликом (file://), браузер блокирует чтение.<br>
-          Запустите локальный сервер или загрузите файл на GitHub Pages.
+          Убедитесь, что файл лежит в корне репозитория.
         </li>`;
     }
   }
@@ -61,8 +70,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function filteredItems() {
     const q = norm(state.query).trim();
-    if (!q) return state.db.slice(0, 300);
-    return state.db.filter(it =>
+    
+    // Берем всю базу
+    let items = state.db;
+    
+    // Убираем те, которые уже добавлены в рапорт
+    const selectedIds = new Set(state.selected.map(s => s.id));
+    items = items.filter(it => !selectedIds.has(it.id));
+
+    if (!q) return items.slice(0, 300);
+    return items.filter(it =>
       norm(it.cName).includes(q) ||
       norm(it.cInv).includes(q) ||
       norm(it.pName).includes(q) ||
@@ -77,11 +94,12 @@ document.addEventListener("DOMContentLoaded", () => {
       resultsEl.innerHTML = `<li class="empty-hint">Ничего не найдено</li>`;
       return;
     }
+    
     const seen = new Set();
     items.forEach(it => {
-      const key = it.cName + "|" + it.cInv + "|" + it.pInv;
-      if (seen.has(key)) return;
-      seen.add(key);
+      if (seen.has(it.id)) return;
+      seen.add(it.id);
+      
       const li = document.createElement("li");
       li.innerHTML = `
         <div><strong>${escapeHtml(it.cName)}</strong></div>
@@ -93,17 +111,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function addItem(it) {
-    const dup = state.selected.some(s => s.cName === it.cName && s.cInv === it.cInv && s.pInv === it.pInv);
-    if (dup) return;
     state.selected.push(it);
     renderSelected();
     renderReport();
+    renderResults(); // Обновляем поиск, чтобы выбранный исчез
   }
 
   function removeItem(idx) {
     state.selected.splice(idx, 1);
     renderSelected();
     renderReport();
+    renderResults(); // Обновляем поиск, чтобы удаленный вернулся
   }
 
   function renderSelected() {
@@ -168,9 +186,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     children.push(p("", { after: 240 }));
-    children.push(p("Главный специалист-эксперт ОТО", { align: AlignmentType.LEFT, after: 0 }));
+    children.push(p(reportPosition.textContent, { align: AlignmentType.LEFT, after: 0 }));
     children.push(p("МО МВД России «Городецкий»", { align: AlignmentType.LEFT, after: 0 }));
-    children.push(p("капитан полиции Иванов И.И.", { align: AlignmentType.LEFT, after: 0 }));
+    children.push(p(reportRank.textContent, { align: AlignmentType.LEFT, after: 0 }));
     children.push(p(dateEl.textContent, { align: AlignmentType.LEFT, after: 0 }));
 
     const doc = new Document({
@@ -199,7 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- СОБЫТИЯ ---
   searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
-  $("#clearBtn").addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); });
+  $("#clearBtn").addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
   $("#docxBtn").addEventListener("click", exportDocx);
   $("#pdfBtn").addEventListener("click", exportPdf);
 
