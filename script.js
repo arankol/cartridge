@@ -18,22 +18,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportRank = $("#reportRank");
   const reportFio = $("#reportFio");
 
-  // Функция обновления предпросмотра
   function updatePreviewText() {
-    reportPosition.textContent = inputPosition.value;
-    reportRank.textContent = inputRank.value;
-    reportFio.textContent = inputFio.value;
+    reportPosition.textContent = inputPosition.value.trim() || "Инженер ГИТСиЗИ";
+    reportRank.textContent = inputRank.value.trim() || "мл. лейтенант внутренней службы";
+    reportFio.textContent = inputFio.value.trim() || "Иванов И.И.";
   }
 
-  // Инициализация полей при загрузке
   if(inputPosition) inputPosition.addEventListener("input", updatePreviewText);
   if(inputRank) inputRank.addEventListener("input", updatePreviewText);
   if(inputFio) inputFio.addEventListener("input", updatePreviewText);
-  
-  // Первичное заполнение
-  updatePreviewText();
 
-  // Установка даты
   const today = new Date();
   const day = String(today.getDate()).padStart(2, "0");
   const year = today.getFullYear();
@@ -209,7 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // 4. Список картриджей
+    // 4. Список картриджей (Настоящий нумерованный список)
     state.selected.forEach((it, i) => {
       const isLast = i === state.selected.length - 1;
       const punctuation = isLast ? "." : ";";
@@ -227,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // 5. Подпись (берет данные из инпутов)
+    // 5. Подпись
     const pSign = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: 0, right: 0, firstLine: 0 },
@@ -235,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
     });
 
-    children.push(pSign(inputPosition.value));
+    children.push(pSign(inputPosition.value.trim() || "Инженер ГИТСиЗИ"));
     children.push(pSign("МО МВД России «Городецкий»"));
     
     children.push(new Paragraph({
@@ -243,11 +237,12 @@ document.addEventListener("DOMContentLoaded", () => {
       indent: { left: 0, right: 0, firstLine: 0 },
       spacing: { before: 0, after: 0, line: 240 },
       tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POS }],
-      children: [ new TextRun({ text: inputRank.value + "\t" + inputFio.value, font: FONT, size: SIZE }) ]
+      children: [ new TextRun({ text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), font: FONT, size: SIZE }) ]
     }));
 
     children.push(pSign(dateEl.textContent));
 
+    // Настройка нумерации Word
     const numberingConfig = {
       config: [
         {
@@ -277,7 +272,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const doc = new Document({
       numbering: numberingConfig,
-      styles: { default: { document: { run: { font: FONT, size: SIZE } } } },
+      styles: {
+        default: {
+          document: { run: { font: FONT, size: SIZE } }
+        }
+      },
       sections: [{ 
         properties: { page: { margin: { top: 1134, bottom: 1134, right: 850, left: 1701 } } }, 
         children 
@@ -292,19 +291,8 @@ document.addEventListener("DOMContentLoaded", () => {
       a.click();
     } catch (e) {
       console.error(e);
-      alert("Ошибка при создании DOCX.");
+      alert("Ошибка при создании DOCX. Проверьте консоль.");
     }
-  }
-
-  function exportPdf() {
-    if (!state.selected.length) return alert("Сначала добавьте картриджи.");
-    window.html2pdf().set({
-      margin: 0,
-      filename: `Рапорт_заправка_${Date.now()}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-    }).from(document.getElementById("report")).save();
   }
 
   if(searchInput) searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
@@ -313,9 +301,6 @@ document.addEventListener("DOMContentLoaded", () => {
   
   const docxBtn = $("#docxBtn");
   if(docxBtn) docxBtn.addEventListener("click", exportDocx);
-  
-  const pdfBtn = $("#pdfBtn");
-  if(pdfBtn) pdfBtn.addEventListener("click", exportPdf);
 
   loadExcel();
 });
