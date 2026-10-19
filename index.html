@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Рапорт на заправку картриджей</title>
 
-  <!-- Библиотеки для работы с Excel, DOCX и PDF -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
@@ -67,7 +66,7 @@
     
     /* Подпись - выравнивание по левому краю, без отступов */
     .report-footer { margin-top: 40px; text-align: left; padding: 0; }
-    .report-footer p { margin: 0; text-indent: 0; padding-left: 0; }
+    .report-footer p { margin: 0; text-indent: 0; padding-left: 0; min-height: 20px; }
     
     /* Строка со званием и ФИО (прижатие к краям) */
     .report-footer .fio-row { 
@@ -76,6 +75,7 @@
       margin-top: 24px; 
       padding: 0;
       text-align: left;
+      min-height: 20px;
     }
     .report-footer .fio-row .fio { text-align: right; }
     
@@ -96,7 +96,7 @@
     <aside class="panel">
       <h1>Заправка картриджей</h1>
       
-      <!-- БЛОК ВВОДА ДАННЫХ -->
+      <!-- БЛОК ВВОДА ДАННЫХ (значения по умолчанию) -->
       <div class="input-group">
         <label>Должность:</label>
         <input type="text" id="inputPosition" value="Инженер ГИТСиЗИ" placeholder="Введите должность" />
@@ -146,14 +146,14 @@
         <ol id="reportList" class="report-list"></ol>
         <p id="emptyNote" class="empty-note">Добавьте картриджи из списка слева — они появятся здесь.</p>
 
-        <!-- Подпись -->
+        <!-- Подпись (Поля пустые, JS их заполнит) -->
         <div class="report-footer">
-          <p id="reportPosition">Инженер ГИТСиЗИ</p>
+          <p id="reportPosition"></p>
           <p>МО МВД России «Городецкий»</p>
           
           <div class="fio-row">
-            <span id="reportRank" class="rank">мл. лейтенант внутренней службы</span>
-            <span id="reportFio" class="fio">Иванов И.И.</span>
+            <span id="reportRank" class="rank"></span>
+            <span id="reportFio" class="fio"></span>
           </div>
           
           <p id="date"></p>
@@ -162,7 +162,6 @@
     </main>
   </div>
 
-  <!-- Подключаем скрипт логики -->
   <script src="script.js"></script>
 </body>
 </html>
