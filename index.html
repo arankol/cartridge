@@ -52,27 +52,33 @@
     .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; }
     .report { background: #fff; width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 25mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
     
-    /* Шапка */
+    /* Форматирование шапки - выравнивание по левому краю, отступ слева 11.25 см */
     .report-header { text-align: left; padding-left: 11.25cm; margin-bottom: 24px; }
     .report-header p { margin: 0; }
     
     .report-title { text-align: center; font-size: 16pt; font-weight: bold; margin: 16px 0 24px; letter-spacing: 2px; text-transform: uppercase; }
     
-    /* Текст вступления (по ширине) */
+    /* Текст по ширине, первая строка 1.25 см */
     .report-body { text-align: justify; text-indent: 1.25cm; margin: 0 0 14px; }
+    .report-list { margin: 0; padding-left: 1.25cm; text-align: justify; }
+    .report-list li { margin-bottom: 0; text-indent: 0; }
     
-    /* Список картриджей (по ширине, отступ первой строки) */
-    .report-list { margin: 0; padding-left: 0; text-align: justify; list-style-position: inside; }
-    .report-list li { margin-bottom: 0; text-indent: 1.25cm; display: block; }
+    .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; }
     
-    .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; text-align: justify; }
-    
-    /* Подпись */
+    /* Подпись - выравнивание по левому краю, без отступов */
     .report-footer { margin-top: 40px; text-align: left; padding: 0; }
     .report-footer p { margin: 0; text-indent: 0; padding-left: 0; }
     
-    .report-footer .fio-row { display: flex; justify-content: space-between; margin-top: 24px; padding: 0; text-align: left; }
+    /* Строка со званием и ФИО (прижатие к краям) */
+    .report-footer .fio-row { 
+      display: flex; 
+      justify-content: space-between; /* Разносит звание влево, ФИО вправо */
+      margin-top: 24px; 
+      padding: 0;
+      text-align: left;
+    }
     .report-footer .fio-row .fio { text-align: right; }
+    
     .report-footer #date { margin-top: 16px; }
 
     @media (max-width: 900px) {
@@ -86,9 +92,11 @@
 </head>
 <body>
   <div class="layout">
+    <!-- ЛЕВАЯ ПАНЕЛЬ -->
     <aside class="panel">
       <h1>Заправка картриджей</h1>
       
+      <!-- БЛОК ВВОДА ДАННЫХ -->
       <div class="input-group">
         <label>Должность:</label>
         <input type="text" id="inputPosition" value="Инженер ГИТСиЗИ" placeholder="Введите должность" />
@@ -118,8 +126,10 @@
       </div>
     </aside>
 
+    <!-- ПРАВАЯ ПАНЕЛЬ (ПРЕДПРОСМОТР) -->
     <main class="preview-wrap">
       <div id="report" class="report">
+        <!-- Шапка -->
         <div class="report-header">
           <p>Начальнику МО МВД</p>
           <p>России «Городецкий»</p>
@@ -136,6 +146,7 @@
         <ol id="reportList" class="report-list"></ol>
         <p id="emptyNote" class="empty-note">Добавьте картриджи из списка слева — они появятся здесь.</p>
 
+        <!-- Подпись -->
         <div class="report-footer">
           <p id="reportPosition">Инженер ГИТСиЗИ</p>
           <p>МО МВД России «Городецкий»</p>
@@ -151,6 +162,7 @@
     </main>
   </div>
 
+  <!-- Подключаем скрипт логики -->
   <script src="script.js"></script>
 </body>
 </html>
