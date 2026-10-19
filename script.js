@@ -136,7 +136,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function reportLine(it) {
-    // Убираем неразрывные пробелы, чтобы Word не ломал нумерацию
     const cName = it.cName;
     const cInv = it.cInv || "—";
     const pName = it.pName;
@@ -167,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const docx = window.docx;
     const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType, LevelFormat } = docx;
     const FONT = "Times New Roman";
-    const SIZE = 28;
+    const SIZE = 28; // 14pt
 
     const INDENT_11_25_CM = 6378; // 11.25 см
     const INDENT_1_25_CM = 709;   // 1.25 см
@@ -188,11 +187,11 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(pHeader("Трошину Н.С."));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // 2. Заголовок
+    // 2. Заголовок (не жирный, 14 шрифт)
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: true }) ]
+      children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: false }) ]
     }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
@@ -297,26 +296,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function exportPdf() {
-    if (!state.selected.length) return alert("Сначала добавьте картриджи.");
-    window.html2pdf().set({
-      margin: 0,
-      filename: `Рапорт_заправка_${Date.now()}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-    }).from(document.getElementById("report")).save();
-  }
-
   if(searchInput) searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
   const clearBtn = $("#clearBtn");
   if(clearBtn) clearBtn.addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
   
   const docxBtn = $("#docxBtn");
   if(docxBtn) docxBtn.addEventListener("click", exportDocx);
-  
-  const pdfBtn = $("#pdfBtn");
-  if(pdfBtn) pdfBtn.addEventListener("click", exportPdf);
 
   loadExcel();
 });
