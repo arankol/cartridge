@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportRank = $("#reportRank");
   const reportFio = $("#reportFio");
 
-  // Синхронизация полей ввода с предпросмотром
   function updatePreviewText() {
     reportPosition.textContent = inputPosition.value.trim() || "Инженер ГИТСиЗИ";
     reportRank.textContent = inputRank.value.trim() || "мл. лейтенант внутренней службы";
@@ -29,7 +28,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if(inputRank) inputRank.addEventListener("input", updatePreviewText);
   if(inputFio) inputFio.addEventListener("input", updatePreviewText);
 
-  // Установка текущей даты
   const today = new Date();
   const day = String(today.getDate()).padStart(2, "0");
   const year = today.getFullYear();
@@ -37,7 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const month = months[today.getMonth()];
   if(dateEl) dateEl.textContent = `«${day}» ${month} ${year} г.`;
 
-  // --- ЗАГРУЗКА И ЧТЕНИЕ EXCEL ---
   async function loadExcel() {
     try {
       const response = await fetch("card.xlsx");
@@ -68,14 +65,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- ОТРИСОВКА И ПОИСК ---
   const norm = (s) => (s || "").toString().toLowerCase();
   const escapeHtml = (s) => (s || "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
   function filteredItems() {
     const q = norm(state.query).trim();
     let items = state.db;
-    
     const selectedIds = new Set(state.selected.map(s => s.id));
     items = items.filter(it => !selectedIds.has(it.id));
 
@@ -140,7 +135,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // --- ФОРМИРОВАНИЕ РАПОРТА ---
   function reportLine(it) {
     return `${it.cName} инв. № ${it.cInv || "—"} к ${it.pName} инв. № ${it.pInv || "—"}`;
   }
@@ -162,19 +156,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- СКАЧИВАНИЕ DOCX ---
   async function exportDocx() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     
     const docx = window.docx;
-    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType, LevelFormat, convertInchesToTwip } = docx;
+    const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType, LevelFormat } = docx;
     const FONT = "Times New Roman";
-    const SIZE = 28; // 14 pt
+    const SIZE = 28;
 
-    // Значения отступов в Twip (1 см = 567 twip)
-    const INDENT_11_25_CM = 6378; // 11.25 см
-    const INDENT_1_25_CM = 709;   // 1.25 см
-    const RIGHT_TAB_POS = 9070;   // Позиция табуляции для прижатия ФИО к правому краю
+    const INDENT_11_25_CM = 6378;
+    const INDENT_1_25_CM = 709;
+    const RIGHT_TAB_POS = 9070;
 
     const children = [];
 
@@ -207,18 +199,20 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // 4. НАСТОЯЩИЙ НУМЕРОВАННЫЙ СПИСОК (с автоматическим переносом строк)
-    state.selected.forEach((it) => {
+    // 4. Список картриджей (истинная нумерация Word)
+    state.selected.forEach((it, i) => {
+      const isLast = i === state.selected.length - 1;
+      const punctuation = isLast ? "." : ";";
       children.push(new Paragraph({
-        text: reportLine(it),
+        text: reportLine(it) + punctuation,
         numbering: {
           reference: "my-numbering",
-          level: 0, // Использует форматирование из настроек ниже
-        },
+          level: 0,
+          instance: 0,
+        }
       }));
     });
 
-    // Пустые строки перед подписью
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
@@ -238,17 +232,12 @@ document.addEventListener("DOMContentLoaded", () => {
       indent: { left: 0, right: 0, firstLine: 0 },
       spacing: { before: 0, after: 0, line: 240 },
       tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POS }],
-      children: [ 
-        new TextRun({ 
-          text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), 
-          font: FONT, size: SIZE 
-        }) 
-      ]
+      children: [ new TextRun({ text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), font: FONT, size: SIZE }) ]
     }));
 
     children.push(pSign(dateEl.textContent));
 
-    // НАСТРОЙКА ФОРМАТИРОВАНИЯ ДЛЯ НУМЕРОВАННОГО СПИСКА
+    // Настройка абстрактного нумерованного списка
     const numberingConfig = {
       config: [
         {
@@ -256,21 +245,19 @@ document.addEventListener("DOMContentLoaded", () => {
           levels: [
             {
               level: 0,
-              format: LevelFormat.DECIMAL,
-              text: "%1.",
-              alignment: AlignmentType.LEFT, // Выравнивание самих цифр влево
+              format: LevelFormat.DECIMAL, // Арабские цифры 1, 2, 3
+              text: "%1.",                 // С точкой
+              alignment: AlignmentType.LEFT, // Выравнивание цифр влево
               style: {
                 paragraph: {
-                  indent: {
-                    left: INDENT_1_25_CM, // Текст начинается с отступом 1.25 см
-                    hanging: INDENT_1_25_CM, // Первая строка с цифрой уходит на 1.25 см влево (создавая нужный отступ)
-                  },
-                  alignment: AlignmentType.JUSTIFIED, // Выравнивание самого текста по ширине
-                  spacing: {
-                    before: 0,
-                    after: 0,
-                    line: 240, // Одинарный интервал
-                  }
+                  // Принудительно задаем отступы и выравнивание
+                  indent: { left: INDENT_1_25_CM, hanging: INDENT_1_25_CM }, // 1.25 см, текст выровнен ровно
+                  alignment: AlignmentType.JUSTIFIED, // По ширине
+                  spacing: { before: 0, after: 0, line: 240 }, // Без интервалов
+                },
+                run: {
+                  font: FONT,
+                  size: SIZE
                 }
               }
             }
@@ -279,20 +266,15 @@ document.addEventListener("DOMContentLoaded", () => {
       ]
     };
 
-    // Настраиваем стили нумерации
     const doc = new Document({
       numbering: numberingConfig,
       styles: {
         default: {
-          document: {
-            run: { font: FONT, size: SIZE },
-          }
+          document: { run: { font: FONT, size: SIZE } }
         }
       },
       sections: [{ 
-        properties: { 
-          page: { margin: { top: 1134, bottom: 1134, right: 850, left: 1701 } } 
-        }, 
+        properties: { page: { margin: { top: 1134, bottom: 1134, right: 850, left: 1701 } } }, 
         children 
       }]
     });
@@ -305,11 +287,10 @@ document.addEventListener("DOMContentLoaded", () => {
       a.click();
     } catch (e) {
       console.error(e);
-      alert("Ошибка при создании файла DOCX.");
+      alert("Ошибка при создании DOCX.");
     }
   }
 
-  // --- СКАЧИВАНИЕ PDF ---
   function exportPdf() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
     window.html2pdf().set({
@@ -321,7 +302,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }).from(document.getElementById("report")).save();
   }
 
-  // --- СОБЫТИЯ ---
   if(searchInput) searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
   const clearBtn = $("#clearBtn");
   if(clearBtn) clearBtn.addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
