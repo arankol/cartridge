@@ -12,28 +12,30 @@ document.addEventListener("DOMContentLoaded", () => {
   
   const inputPosition = $("#inputPosition");
   const inputRank = $("#inputRank");
+  const inputFio = $("#inputFio");
+  
   const reportPosition = $("#reportPosition");
-  const reportRank = $("#reportRank");
+  const reportRankAndFio = $("#reportRankAndFio");
 
-  // Мгновенное обновление предпросмотра при вводе текста
-  if (inputPosition) {
-    inputPosition.addEventListener("input", (e) => {
-      reportPosition.textContent = e.target.value.trim() || "Главный специалист-эксперт ОТО";
-    });
-  }
-  if (inputRank) {
-    inputRank.addEventListener("input", (e) => {
-      reportRank.textContent = e.target.value.trim() || "капитан полиции Иванов И.И.";
-    });
+  // Синхронизация полей ввода с предпросмотром
+  function updatePreviewText() {
+    reportPosition.textContent = inputPosition.value.trim() || "Инженер ГИТСиЗИ";
+    const rank = inputRank.value.trim();
+    const fio = inputFio.value.trim();
+    reportRankAndFio.textContent = `${rank} ${fio}`.trim() || "мл. лейтенант внутренней службы Иванов И.И.";
   }
 
-  // Установка текущей даты
+  inputPosition.addEventListener("input", updatePreviewText);
+  inputRank.addEventListener("input", updatePreviewText);
+  inputFio.addEventListener("input", updatePreviewText);
+
+  // Установка текущей даты (в формате «19» октября 2026 г.)
   const today = new Date();
-  if (dateEl) {
-    dateEl.textContent = `«${String(today.getDate()).padStart(2,"0")}» ${
-      ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"][today.getMonth()]
-    } ${today.getFullYear()} г.`;
-  }
+  const day = String(today.getDate()).padStart(2, "0");
+  const year = today.getFullYear();
+  const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+  const month = months[today.getMonth()];
+  dateEl.textContent = `«${day}» ${month} ${year} г.`;
 
   // --- ЗАГРУЗКА И ЧТЕНИЕ EXCEL ---
   async function loadExcel() {
@@ -47,7 +49,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false, defval: "" });
       
       const out = [];
-      // Пропускаем первую строку (заголовки), начинаем со второй (индекс 1)
       for (let i = 1; i < rows.length; i++) {
         const r = rows[i];
         const cName = (r[0] || "").toString().trim();
@@ -55,23 +56,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const pName = (r[2] || "").toString().trim();
         const pInv  = (r[3] || "").toString().trim();
 
-        if (!cName) continue; // Пропускаем пустые строки
-        if (/^итого$/i.test(cName)) continue; // Пропускаем строку "Итого"
+        if (!cName) continue;
+        if (/^итого$/i.test(cName)) continue;
 
-        // УНИКАЛЬНЫЙ ID = номер строки в Excel. Это исключает дубликаты.
         out.push({ id: i, cName, cInv, pName, pInv });
       }
       state.db = out;
       renderResults();
     } catch (error) {
       console.error(error);
-      if (resultsEl) {
-        resultsEl.innerHTML = `
-          <li class="empty-hint" style="color: #dc2626;">
-            Ошибка чтения card.xlsx.<br><br>
-            Убедитесь, что файл лежит в корне репозитория.
-          </li>`;
-      }
+      resultsEl.innerHTML = `<li class="empty-hint" style="color: #dc2626;">Ошибка чтения card.xlsx. Убедитесь, что файл лежит в корне репозитория.</li>`;
     }
   }
 
@@ -81,11 +75,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function filteredItems() {
     const q = norm(state.query).trim();
-    
-    // Берем всю базу
     let items = state.db;
     
-    // Отфильтровываем те, чей ID уже есть в выбранных
+    // Скрываем уже выбранные
     const selectedIds = new Set(state.selected.map(s => s.id));
     items = items.filter(it => !selectedIds.has(it.id));
 
@@ -99,7 +91,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderResults() {
-    if (!resultsEl) return;
     const items = filteredItems();
     resultsEl.innerHTML = "";
     if (!items.length) {
@@ -122,18 +113,17 @@ document.addEventListener("DOMContentLoaded", () => {
     state.selected.push(it);
     renderSelected();
     renderReport();
-    renderResults(); // Обновляем поиск, чтобы выбранный исчез
+    renderResults();
   }
 
   function removeItem(idx) {
     state.selected.splice(idx, 1);
     renderSelected();
     renderReport();
-    renderResults(); // Обновляем поиск, чтобы удаленный вернулся
+    renderResults();
   }
 
   function renderSelected() {
-    if (!selectedEl) return;
     countEl.textContent = state.selected.length;
     selectedEl.innerHTML = "";
     state.selected.forEach((it, idx) => {
@@ -156,7 +146,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderReport() {
-    if (!reportListEl) return;
     reportListEl.innerHTML = "";
     if (!state.selected.length) {
       emptyNote.style.display = "";
@@ -170,40 +159,81 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- СКАЧИВАНИЕ DOCX ---
+  // --- СКАЧИВАНИЕ DOCX (С ТОЧНЫМ ФОРМАТИРОВАНИЕМ) ---
   async function exportDocx() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
-    const { Document, Packer, Paragraph, TextRun, AlignmentType } = window.docx;
+    const { Document, Packer, Paragraph, TextRun, AlignmentType, convertMillimetersToTwip } = window.docx;
     const FONT = "Times New Roman";
-    const SIZE = 28;
+    const SIZE = 28; // 14 pt
 
+    // Вспомогательная функция для создания параграфа
     const p = (text, opts = {}) => new Paragraph({
       alignment: opts.align || AlignmentType.JUSTIFIED,
-      spacing: { line: 360, after: opts.after ?? 120 },
+      spacing: { line: 360, before: 0, after: 0 }, // Одинарный интервал
       indent: opts.indent,
-      children: [ new TextRun({ text, font: FONT, size: SIZE, bold: opts.bold }) ]
+      children: [ new TextRun({ text: text, font: FONT, size: SIZE, bold: opts.bold }) ]
     });
 
     const children = [];
-    children.push(p("Начальнику МО МВД России «Городецкий»", { align: AlignmentType.RIGHT, after: 0 }));
-    children.push(p("полковнику полиции", { align: AlignmentType.RIGHT, after: 0 }));
-    children.push(p("Трошину Н.С.", { align: AlignmentType.RIGHT, after: 240 }));
-    children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 240 }, children: [ new TextRun({ text: "Рапорт", font: FONT, size: 32, bold: true }) ] }));
-    children.push(p("Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", { indent: { firstLine: 720 }, after: 160 }));
-    
+
+    // 1. Шапка (справа, без отступа)
+    children.push(p("Начальнику МО МВД", { align: AlignmentType.RIGHT, indent: { left: 0, firstLine: 0 } }));
+    children.push(p("России «Городецкий»", { align: AlignmentType.RIGHT, indent: { left: 0, firstLine: 0 } }));
+    children.push(p("полковнику полиции", { align: AlignmentType.RIGHT, indent: { left: 0, firstLine: 0 } }));
+    children.push(p("Трошину Н.С.", { align: AlignmentType.RIGHT, indent: { left: 0, firstLine: 0 }, after: 240 })); // Отступ после шапки
+
+    // 2. Заголовок (по центру, жирный)
+    children.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 240 },
+      children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: true }) ]
+    }));
+
+    // 3. Вступление (по ширине, отступ первой строки 1.25 см)
+    children.push(p("Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", {
+      indent: { firstLine: convertMillimetersToTwip(12.5) }, after: 120
+    }));
+
+    // 4. Список картриджей (по ширине, отступ первой строки 1.25 см)
     state.selected.forEach((it, i) => {
-      children.push(p(`${i + 1}. ${reportLine(it)};`, { indent: { left: 720, hanging: 360 }, after: 120 }));
+      children.push(p(`${i + 1}. ${reportLine(it)};`, {
+        indent: { firstLine: convertMillimetersToTwip(12.5) }, after: 0
+      }));
     });
 
-    children.push(p("", { after: 240 }));
-    children.push(p(reportPosition.textContent, { align: AlignmentType.LEFT, after: 0 }));
-    children.push(p("МО МВД России «Городецкий»", { align: AlignmentType.LEFT, after: 0 }));
-    children.push(p(reportRank.textContent, { align: AlignmentType.LEFT, after: 0 }));
-    children.push(p(dateEl.textContent, { align: AlignmentType.LEFT, after: 0 }));
+    // 5. Подпись (отступ слева 11.25 см, без отступа первой строки)
+    children.push(p("", { after: 240 })); // Пустая строка
+    
+    // Функция для строк подписи
+    const pSign = (text) => new Paragraph({
+      alignment: AlignmentType.LEFT,
+      spacing: { line: 360, before: 0, after: 0 },
+      indent: { left: convertMillimetersToTwip(112.5), firstLine: 0 },
+      children: [ new TextRun({ text: text, font: FONT, size: SIZE }) ]
+    });
 
+    children.push(pSign(inputPosition.value.trim() || "Инженер ГИТСиЗИ"));
+    children.push(pSign("МО МВД России «Городецкий»"));
+    children.push(pSign(`${inputRank.value.trim()} ${inputFio.value.trim()}`));
+    children.push(pSign(dateEl.textContent));
+
+    // Создание документа
     const doc = new Document({
       styles: { default: { document: { run: { font: FONT, size: SIZE } } } },
-      sections: [{ properties: { page: { margin: { top: 1134, bottom: 1134, left: 1701, right: 850 } } }, children }]
+      sections: [{ 
+        properties: { 
+          page: { 
+            // Стандартные поля страницы Word (2 см сверху/снизу, 1.5 см справа, 3 см слева)
+            margin: { 
+              top: convertMillimetersToTwip(20), 
+              bottom: convertMillimetersToTwip(20), 
+              right: convertMillimetersToTwip(15), 
+              left: convertMillimetersToTwip(30) 
+            } 
+          } 
+        }, 
+        children 
+      }]
     });
     
     const blob = await Packer.toBlob(doc);
@@ -226,24 +256,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- СОБЫТИЯ ---
-  if (searchInput) {
-    searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
-  }
-  
-  const clearBtn = $("#clearBtn");
-  if (clearBtn) {
-    clearBtn.addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
-  }
-
-  const docxBtn = $("#docxBtn");
-  if (docxBtn) {
-    docxBtn.addEventListener("click", exportDocx);
-  }
-
-  const pdfBtn = $("#pdfBtn");
-  if (pdfBtn) {
-    pdfBtn.addEventListener("click", exportPdf);
-  }
+  searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
+  $("#clearBtn").addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
+  $("#docxBtn").addEventListener("click", exportDocx);
+  $("#pdfBtn").addEventListener("click", exportPdf);
 
   // Запускаем загрузку Excel при старте
   loadExcel();
