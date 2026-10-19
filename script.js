@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportRank = $("#reportRank");
   const reportFio = $("#reportFio");
 
+  // Синхронизация полей
   function updatePreviewText() {
     reportPosition.textContent = inputPosition.value.trim() || "Инженер ГИТСиЗИ";
     reportRank.textContent = inputRank.value.trim() || "мл. лейтенант внутренней службы";
@@ -134,8 +135,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Заменяем обычные пробелы на неразрывные в ключевых местах для идеального выравнивания
+  function safeStr(str) {
+    return (str || "").toString()
+      .replace(/инв\.\s*№/g, "инв.\u00A0№")
+      .replace(/\s+к\s+/g, "\u00A0к\u00A0");
+  }
+
   function reportLine(it) {
-    return `${it.cName} инв. № ${it.cInv || "—"} к ${it.pName} инв. № ${it.pInv || "—"}`;
+    const cName = safeStr(it.cName);
+    const cInv = safeStr(it.cInv || "—");
+    const pName = safeStr(it.pName);
+    const pInv = safeStr(it.pInv || "—");
+    return `${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}`;
   }
 
   function renderReport() {
@@ -164,6 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const SIZE = 28;
     const INDENT_11_25_CM = 6378;
     const INDENT_1_25_CM = 709;
+    const RIGHT_TAB_POS = 9070;
 
     const children = [];
 
@@ -196,16 +209,23 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
-    // 4. Список картриджей (Выровнен по левому краю, чтобы не было огромных пробелов)
+    // 4. Список картриджей (Настоящий нумерованный список по ширине, отступ 1.25)
     state.selected.forEach((it, i) => {
       const isLast = i === state.selected.length - 1;
       const punctuation = isLast ? "." : ";";
+      
+      // Внутри списка используем неразрывные пробелы, чтобы Word не растягивал текст
+      const cName = safeStr(it.cName);
+      const cInv = safeStr(it.cInv || "—");
+      const pName = safeStr(it.pName);
+      const pInv = safeStr(it.pInv || "—");
+      const text = `${i + 1}. ${cName} инв.\u00A0№\u00A0${cInv}\u00A0к\u00A0${pName} инв.\u00A0№\u00A0${pInv}${punctuation}`;
+
       children.push(new Paragraph({
-        alignment: AlignmentType.LEFT, // Отключаем растягивание пробелов
-        indent: { left: INDENT_1_25_CM, hanging: INDENT_1_25_CM }, // Номер слева, текст ровно
-        tabStops: [{ type: TabStopType.LEFT, position: INDENT_1_25_CM }], // Вкладка, чтобы текст ровнялся
+        alignment: AlignmentType.JUSTIFIED, // Выравнивание по ширине
+        indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM }, // Отступ первой строки 1.25 см
         spacing: { before: 0, after: 0, line: 240 },
-        children: [ new TextRun({ text: `${i + 1}.\t${reportLine(it)}${punctuation}`, font: FONT, size: SIZE }) ]
+        children: [ new TextRun({ text, font: FONT, size: SIZE }) ]
       }));
     });
 
@@ -222,7 +242,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     children.push(pSign(inputPosition.value.trim() || "Инженер ГИТСиЗИ"));
     children.push(pSign("МО МВД России «Городецкий»"));
-    children.push(pSign(`${inputRank.value.trim() || "мл. лейтенант внутренней службы"} \t ${inputFio.value.trim() || "Иванов И.И."}`));
+    
+    // Звание и ФИО с табуляцией
+    children.push(new Paragraph({
+      alignment: AlignmentType.LEFT,
+      indent: { left: 0, right: 0, firstLine: 0 },
+      spacing: { before: 0, after: 0, line: 240 },
+      tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POS }],
+      children: [ 
+        new TextRun({ text: (inputRank.value.trim() || "мл. лейтенант внутренней службы") + "\t" + (inputFio.value.trim() || "Иванов И.И."), font: FONT, size: SIZE }) 
+      ]
+    }));
+
     children.push(pSign(dateEl.textContent));
 
     const doc = new Document({
@@ -247,18 +278,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function exportPdf() {
     if (!state.selected.length) return alert("Сначала добавьте картриджи.");
-    
-    // Принудительно фиксируем стили для PDF, чтобы они не съезжали
-    const element = document.getElementById("report");
-    element.style.margin = "0";
-
     window.html2pdf().set({
       margin: 0,
       filename: `Рапорт_заправка_${Date.now()}.pdf`,
       image: { type: "jpeg", quality: 1.0 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+      html2canvas: { scale: 3, useCORS: true, backgroundColor: "#ffffff", wordSpacing: 0 },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-    }).from(element).save();
+    }).from(document.getElementById("report")).save();
   }
 
   if(searchInput) searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
