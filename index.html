@@ -48,7 +48,7 @@
     .btn.primary:hover { background: #1d4ed8; }
     .btn.secondary:hover { background: #f3f4f6; }
 
-    /* Правая панель (Предпросмотр) */
+    /* Правая панель (Предпросмотр A4) */
     .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; }
     .report { background: #fff; width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 25mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
     
@@ -68,9 +68,17 @@
     /* Подпись - выравнивание по левому краю, без отступов */
     .report-footer { margin-top: 40px; text-align: left; padding: 0; }
     .report-footer p { margin: 0; text-indent: 0; padding-left: 0; }
-    .report-footer .fio-row { display: flex; justify-content: flex-start; margin-top: 24px; }
-    .report-footer .fio-row .rank { width: 11.25cm; }
-    .report-footer .fio-row .fio { padding-left: 0; }
+    
+    /* Строка со званием и ФИО (прижатие к краям) */
+    .report-footer .fio-row { 
+      display: flex; 
+      justify-content: space-between; /* Разносит звание влево, ФИО вправо */
+      margin-top: 24px; 
+      padding: 0;
+      text-align: left;
+    }
+    .report-footer .fio-row .fio { text-align: right; }
+    
     .report-footer #date { margin-top: 16px; }
 
     @media (max-width: 900px) {
@@ -78,8 +86,7 @@
       .panel { position: static; max-height: none; border-right: none; border-bottom: 1px solid #e5e7eb; }
       .preview-wrap { padding: 10px; }
       .report { width: 100%; min-height: auto; padding: 20px; font-size: 12pt; }
-      .report-header { padding-left: 0; }
-      .report-footer .fio-row .rank { width: auto; margin-right: 10px; }
+      .report-header { padding-left: 0; text-align: right; }
     }
   </style>
 </head>
@@ -143,10 +150,12 @@
         <div class="report-footer">
           <p id="reportPosition">Инженер ГИТСиЗИ</p>
           <p>МО МВД России «Городецкий»</p>
+          
           <div class="fio-row">
             <span id="reportRank" class="rank">мл. лейтенант внутренней службы</span>
             <span id="reportFio" class="fio">Иванов И.И.</span>
           </div>
+          
           <p id="date"></p>
         </div>
       </div>
