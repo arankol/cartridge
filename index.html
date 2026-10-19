@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Рапорт на заправку картриджей</title>
 
-  <!-- Библиотеки для работы с Excel и DOCX -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 
@@ -51,28 +50,34 @@
     .preview-wrap { padding: 32px; display: flex; justify-content: center; align-items: flex-start; background: #e5e7eb; overflow-x: auto; min-width: 0; }
     .report { background: #fff; width: 210mm; min-width: 210mm; min-height: 297mm; padding: 20mm 15mm 20mm 30mm; box-shadow: 0 4px 24px rgba(0,0,0,.1); font-family: "Times New Roman", Times, serif; font-size: 14pt; line-height: 1.35; color: #000; }
     
-    /* Форматирование шапки - выравнивание по левому краю, отступ слева 11.25 см */
+    /* Форматирование шапки */
     .report-header { text-align: left; padding-left: 11.25cm; margin-bottom: 24px; }
     .report-header p { margin: 0; }
     
-    .report-title { text-align: center; font-size: 16pt; font-weight: bold; margin: 16px 0 24px; letter-spacing: 2px; text-transform: uppercase; }
+    /* Заголовок Рапорт (не жирный, 14pt) */
+    .report-title { 
+      text-align: center; 
+      font-size: 14pt; 
+      font-weight: normal; 
+      margin: 16px 0 24px; 
+      letter-spacing: 0px; 
+      text-transform: uppercase; 
+    }
     
     /* Текст по ширине, первая строка 1.25 см */
     .report-body { text-align: justify; text-indent: 1.25cm; margin: 0 0 14px; }
-    /* Не растягиваем пробелы в списке: в браузере это выглядело иначе, чем в Word. */
-    .report-list { margin: 0; padding-left: 1.25cm; text-align: left; }
+    .report-list { margin: 0; padding-left: 1.25cm; text-align: justify; }
     .report-list li { margin-bottom: 0; text-indent: 0; }
     
     .empty-note { color: #9ca3af; font-style: italic; text-indent: 1.25cm; }
     
-    /* Подпись - выравнивание по левому краю, без отступов */
+    /* Подпись */
     .report-footer { margin-top: 40px; text-align: left; padding: 0; }
     .report-footer p { margin: 0; text-indent: 0; padding-left: 0; }
     
-    /* Строка со званием и ФИО (прижатие к краям) */
     .report-footer .fio-row { 
       display: flex; 
-      justify-content: space-between; /* Разносит звание влево, ФИО вправо */
+      justify-content: space-between; 
       margin-top: 0; 
       padding: 0;
       text-align: left;
@@ -92,11 +97,9 @@
 </head>
 <body>
   <div class="layout">
-    <!-- ЛЕВАЯ ПАНЕЛЬ -->
     <aside class="panel">
       <h1>Заправка картриджей</h1>
       
-      <!-- БЛОК ВВОДА ДАННЫХ -->
       <div class="input-group">
         <label>Должность:</label>
         <input type="text" id="inputPosition" value="Инженер ГИТСиЗИ" placeholder="Введите должность" />
@@ -125,10 +128,8 @@
       </div>
     </aside>
 
-    <!-- ПРАВАЯ ПАНЕЛЬ (ПРЕДПРОСМОТР) -->
     <main class="preview-wrap">
       <div id="report" class="report">
-        <!-- Шапка -->
         <div class="report-header">
           <p>Начальнику МО МВД</p>
           <p>России «Городецкий»</p>
@@ -145,7 +146,6 @@
         <ol id="reportList" class="report-list"></ol>
         <p id="emptyNote" class="empty-note">Добавьте картриджи из списка слева — они появятся здесь.</p>
 
-        <!-- Подпись -->
         <div class="report-footer">
           <p id="reportPosition">Инженер ГИТСиЗИ</p>
           <p>МО МВД России «Городецкий»</p>
@@ -161,7 +161,6 @@
     </main>
   </div>
 
-  <!-- Подключаем скрипт логики -->
   <script src="script.js"></script>
 </body>
 </html>
