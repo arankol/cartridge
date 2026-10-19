@@ -166,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const docx = window.docx;
     const { Document, Packer, Paragraph, TextRun, AlignmentType, TabStopType, LevelFormat } = docx;
     const FONT = "Times New Roman";
-    const SIZE = 28;
+    const SIZE = 28; // 14pt
 
     const INDENT_11_25_CM = 6378; // 11.25 см
     const INDENT_1_25_CM = 709;   // 1.25 см
@@ -187,11 +187,11 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(pHeader("Трошину Н.С."));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
-    // 2. Заголовок
+    // 2. Заголовок (не жирный, 14 шрифт)
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 0, line: 240 },
-      children: [ new TextRun({ text: "Рапорт", font: FONT, size: 28, bold: false }) ]
+      children: [ new TextRun({ text: "Рапорт", font: FONT, size: SIZE, bold: false }) ]
     }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
@@ -210,8 +210,6 @@ document.addEventListener("DOMContentLoaded", () => {
       
       children.push(new Paragraph({
         text: reportLine(it) + punctuation,
-        alignment: AlignmentType.JUSTIFIED,
-        spacing: { before: 0, after: 0, line: 240 },
         numbering: {
           reference: "custom-numbering",
           level: 0,
@@ -257,7 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
               alignment: AlignmentType.LEFT,
               style: {
                 paragraph: {
-                  indent: { left: INDENT_1_25_CM, hanging: 360 },
+                  indent: { left: 0, firstLine: INDENT_1_25_CM }, 
                   alignment: AlignmentType.JUSTIFIED,
                   spacing: { before: 0, after: 0, line: 240 },
                 },
