@@ -136,6 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function reportLine(it) {
+    // Убираем неразрывные пробелы, чтобы Word не ломал нумерацию
     const cName = it.cName;
     const cInv = it.cInv || "—";
     const pName = it.pName;
@@ -250,13 +251,14 @@ document.addEventListener("DOMContentLoaded", () => {
           levels: [
             {
               level: 0,
-              format: LevelFormat.DECIMAL,
-              text: "%1.",
-              alignment: AlignmentType.LEFT,
+              format: LevelFormat.DECIMAL, // 1, 2, 3
+              text: "%1.", // Точка после цифры
+              alignment: AlignmentType.LEFT, // Цифры по левому краю
               style: {
                 paragraph: {
+                  // Жестко задаем отступ первой строки 1.25 см и отступ слева 0
                   indent: { left: 0, firstLine: INDENT_1_25_CM }, 
-                  alignment: AlignmentType.JUSTIFIED,
+                  alignment: AlignmentType.JUSTIFIED, // По ширине
                   spacing: { before: 0, after: 0, line: 240 },
                 },
                 run: {
@@ -295,12 +297,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function exportPdf() {
+    if (!state.selected.length) return alert("Сначала добавьте картриджи.");
+    window.html2pdf().set({
+      margin: 0,
+      filename: `Рапорт_заправка_${Date.now()}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+    }).from(document.getElementById("report")).save();
+  }
+
   if(searchInput) searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
   const clearBtn = $("#clearBtn");
   if(clearBtn) clearBtn.addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
   
   const docxBtn = $("#docxBtn");
   if(docxBtn) docxBtn.addEventListener("click", exportDocx);
+  
+  const pdfBtn = $("#pdfBtn");
+  if(pdfBtn) pdfBtn.addEventListener("click", exportPdf);
 
   loadExcel();
 });
