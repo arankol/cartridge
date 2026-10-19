@@ -136,6 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function reportLine(it) {
+    // Убираем неразрывные пробелы, чтобы Word не ломал нумерацию
     const cName = it.cName;
     const cInv = it.cInv || "—";
     const pName = it.pName;
@@ -168,12 +169,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const FONT = "Times New Roman";
     const SIZE = 28;
 
-    const INDENT_11_25_CM = 6378;
-    const INDENT_1_25_CM = 709;
+    const INDENT_11_25_CM = 6378; // 11.25 см
+    const INDENT_1_25_CM = 709;   // 1.25 см
     const RIGHT_TAB_POS = 9070;
 
     const children = [];
 
+    // 1. Шапка
     const pHeader = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: INDENT_11_25_CM, firstLine: 0 },
@@ -186,6 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(pHeader("Трошину Н.С."));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
+    // 2. Заголовок
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 0, line: 240 },
@@ -193,6 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
+    // 3. Вступление
     children.push(new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       indent: { left: 0, right: 0, firstLine: INDENT_1_25_CM },
@@ -200,6 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
       children: [ new TextRun({ text: "Прошу Вас поручить службе тылового обеспечения заправить следующие картриджи:", font: FONT, size: SIZE }) ]
     }));
 
+    // 4. Список картриджей (Настоящий нумерованный список)
     state.selected.forEach((it, i) => {
       const isLast = i === state.selected.length - 1;
       const punctuation = isLast ? "." : ";";
@@ -217,6 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
     children.push(new Paragraph({ spacing: { after: 0, line: 240 } }));
 
+    // 5. Подпись
     const pSign = (text) => new Paragraph({
       alignment: AlignmentType.LEFT,
       indent: { left: 0, right: 0, firstLine: 0 },
@@ -237,6 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     children.push(pSign(dateEl.textContent));
 
+    // Настройка нумерации Word
     const numberingConfig = {
       config: [
         {
@@ -244,13 +251,14 @@ document.addEventListener("DOMContentLoaded", () => {
           levels: [
             {
               level: 0,
-              format: LevelFormat.DECIMAL,
-              text: "%1.",
-              alignment: AlignmentType.LEFT,
+              format: LevelFormat.DECIMAL, // 1, 2, 3
+              text: "%1.", // Точка после цифры
+              alignment: AlignmentType.LEFT, // Цифры по левому краю
               style: {
                 paragraph: {
+                  // Жестко задаем отступ первой строки 1.25 см и отступ слева 0
                   indent: { left: 0, firstLine: INDENT_1_25_CM }, 
-                  alignment: AlignmentType.JUSTIFIED,
+                  alignment: AlignmentType.JUSTIFIED, // По ширине
                   spacing: { before: 0, after: 0, line: 240 },
                 },
                 run: {
@@ -285,8 +293,19 @@ document.addEventListener("DOMContentLoaded", () => {
       a.click();
     } catch (e) {
       console.error(e);
-      alert("Ошибка при создании DOCX.");
+      alert("Ошибка при создании DOCX. Проверьте консоль.");
     }
+  }
+
+  function exportPdf() {
+    if (!state.selected.length) return alert("Сначала добавьте картриджи.");
+    window.html2pdf().set({
+      margin: 0,
+      filename: `Рапорт_заправка_${Date.now()}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+    }).from(document.getElementById("report")).save();
   }
 
   if(searchInput) searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
@@ -296,5 +315,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const docxBtn = $("#docxBtn");
   if(docxBtn) docxBtn.addEventListener("click", exportDocx);
   
+  const pdfBtn = $("#pdfBtn");
+  if(pdfBtn) pdfBtn.addEventListener("click", exportPdf);
+
   loadExcel();
 });
