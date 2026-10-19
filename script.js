@@ -15,15 +15,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportPosition = $("#reportPosition");
   const reportRank = $("#reportRank");
 
-  // Синхронизация полей ввода с предпросмотром
-  inputPosition.addEventListener("input", (e) => { reportPosition.textContent = e.target.value || "Главный специалист-эксперт ОТО"; });
-  inputRank.addEventListener("input", (e) => { reportRank.textContent = e.target.value || "капитан полиции Иванов И.И."; });
+  // Мгновенное обновление предпросмотра при вводе текста
+  if (inputPosition) {
+    inputPosition.addEventListener("input", (e) => {
+      reportPosition.textContent = e.target.value.trim() || "Главный специалист-эксперт ОТО";
+    });
+  }
+  if (inputRank) {
+    inputRank.addEventListener("input", (e) => {
+      reportRank.textContent = e.target.value.trim() || "капитан полиции Иванов И.И.";
+    });
+  }
 
   // Установка текущей даты
   const today = new Date();
-  dateEl.textContent = `«${String(today.getDate()).padStart(2,"0")}» ${
-    ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"][today.getMonth()]
-  } ${today.getFullYear()} г.`;
+  if (dateEl) {
+    dateEl.textContent = `«${String(today.getDate()).padStart(2,"0")}» ${
+      ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"][today.getMonth()]
+    } ${today.getFullYear()} г.`;
+  }
 
   // --- ЗАГРУЗКА И ЧТЕНИЕ EXCEL ---
   async function loadExcel() {
@@ -48,19 +58,20 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!cName) continue; // Пропускаем пустые строки
         if (/^итого$/i.test(cName)) continue; // Пропускаем строку "Итого"
 
-        // Создаем уникальный ID для каждой строки
-        const id = `${cName}|${cInv}|${pInv}`.replace(/\s+/g, '');
-        out.push({ id, cName, cInv, pName, pInv });
+        // УНИКАЛЬНЫЙ ID = номер строки в Excel. Это исключает дубликаты.
+        out.push({ id: i, cName, cInv, pName, pInv });
       }
       state.db = out;
       renderResults();
     } catch (error) {
       console.error(error);
-      resultsEl.innerHTML = `
-        <li class="empty-hint" style="color: #dc2626;">
-          Ошибка чтения card.xlsx.<br><br>
-          Убедитесь, что файл лежит в корне репозитория.
-        </li>`;
+      if (resultsEl) {
+        resultsEl.innerHTML = `
+          <li class="empty-hint" style="color: #dc2626;">
+            Ошибка чтения card.xlsx.<br><br>
+            Убедитесь, что файл лежит в корне репозитория.
+          </li>`;
+      }
     }
   }
 
@@ -74,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Берем всю базу
     let items = state.db;
     
-    // Убираем те, которые уже добавлены в рапорт
+    // Отфильтровываем те, чей ID уже есть в выбранных
     const selectedIds = new Set(state.selected.map(s => s.id));
     items = items.filter(it => !selectedIds.has(it.id));
 
@@ -88,6 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderResults() {
+    if (!resultsEl) return;
     const items = filteredItems();
     resultsEl.innerHTML = "";
     if (!items.length) {
@@ -95,11 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    const seen = new Set();
     items.forEach(it => {
-      if (seen.has(it.id)) return;
-      seen.add(it.id);
-      
       const li = document.createElement("li");
       li.innerHTML = `
         <div><strong>${escapeHtml(it.cName)}</strong></div>
@@ -125,6 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderSelected() {
+    if (!selectedEl) return;
     countEl.textContent = state.selected.length;
     selectedEl.innerHTML = "";
     state.selected.forEach((it, idx) => {
@@ -147,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderReport() {
+    if (!reportListEl) return;
     reportListEl.innerHTML = "";
     if (!state.selected.length) {
       emptyNote.style.display = "";
@@ -216,10 +226,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- СОБЫТИЯ ---
-  searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
-  $("#clearBtn").addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
-  $("#docxBtn").addEventListener("click", exportDocx);
-  $("#pdfBtn").addEventListener("click", exportPdf);
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => { state.query = e.target.value; renderResults(); });
+  }
+  
+  const clearBtn = $("#clearBtn");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => { state.selected = []; renderSelected(); renderReport(); renderResults(); });
+  }
+
+  const docxBtn = $("#docxBtn");
+  if (docxBtn) {
+    docxBtn.addEventListener("click", exportDocx);
+  }
+
+  const pdfBtn = $("#pdfBtn");
+  if (pdfBtn) {
+    pdfBtn.addEventListener("click", exportPdf);
+  }
 
   // Запускаем загрузку Excel при старте
   loadExcel();
